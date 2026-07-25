@@ -1,26 +1,57 @@
-import { treinoMock } from './treinoMock';
+import Constants from 'expo-constants';
+import { Platform } from 'react-native';
+
 import type { TreinoDetalhadoDTO } from '../types/treino';
 
-// Implementação atual: dados mockados. Quando a API existir, trocar o corpo
-// destas 4 funções por chamadas `fetch` reais — nenhum componente ou hook
-// que consome este serviço precisa mudar.
-//
-// Contrato esperado da API (ver plano da US03 para os endpoints sugeridos):
+// Contrato da API (implementado no repo exercicios-app-backend, src/routes/):
 //   buscarTreinoAtivo   -> GET   /treinos/:treinoId/execucao
 //   iniciarSessao       -> POST  /sessoes
 //   registrarProgresso  -> PATCH /sessoes/:sessaoId/progresso
 //   finalizarSessao     -> PATCH /sessoes/:sessaoId/finalizar
 
+function resolverApiBaseUrl(): string {
+  // Em dispositivo físico via Expo Go, localhost/10.0.2.2 não apontam pro
+  // computador — usamos o mesmo host que o Metro Bundler já detectou (o IP
+  // da máquina na rede local) para não precisar configurar isso na mão.
+  const hostUri = Constants.expoConfig?.hostUri ?? Constants.expoGoConfig?.debuggerHost;
+  if (hostUri) {
+    const host = hostUri.split(':')[0];
+    return `http://${host}:3000`;
+  }
+
+  return (
+    Platform.select({
+      android: 'http://10.0.2.2:3000',
+      default: 'http://localhost:3000',
+    }) ?? 'http://localhost:3000'
+  );
+}
+
+const API_BASE_URL = resolverApiBaseUrl();
+
+async function tratarResposta(response: Response, mensagemErro: string): Promise<void> {
+  if (!response.ok) {
+    throw new Error(`${mensagemErro} (status ${response.status})`);
+  }
+}
+
 export async function buscarTreinoAtivo(treinoId: number): Promise<TreinoDetalhadoDTO> {
-  return { ...treinoMock, id: treinoId };
+  const response = await fetch(`${API_BASE_URL}/treinos/${treinoId}/execucao`);
+  await tratarResposta(response, 'Não foi possível carregar o treino');
+  return response.json();
 }
 
 export async function iniciarSessao(
   treinoId: number,
   participanteId: number,
 ): Promise<{ sessaoId: number }> {
-  console.log('[treinoService] iniciarSessao (mock)', { treinoId, participanteId });
-  return { sessaoId: 1 };
+  const response = await fetch(`${API_BASE_URL}/sessoes`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ treinoId, participanteId }),
+  });
+  await tratarResposta(response, 'Não foi possível iniciar a sessão');
+  return response.json();
 }
 
 export async function registrarProgresso(
@@ -28,7 +59,12 @@ export async function registrarProgresso(
   exercicioId: number,
   serie: number,
 ): Promise<void> {
-  console.log('[treinoService] registrarProgresso (mock)', { sessaoId, exercicioId, serie });
+  const response = await fetch(`${API_BASE_URL}/sessoes/${sessaoId}/progresso`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ exercicioId, serie }),
+  });
+  await tratarResposta(response, 'Não foi possível registrar o progresso');
 }
 
 export interface FinalizarSessaoPayload {
@@ -41,5 +77,10 @@ export async function finalizarSessao(
   sessaoId: number,
   dados: FinalizarSessaoPayload,
 ): Promise<void> {
-  console.log('[treinoService] finalizarSessao (mock)', { sessaoId, ...dados });
+  const response = await fetch(`${API_BASE_URL}/sessoes/${sessaoId}/finalizar`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(dados),
+  });
+  await tratarResposta(response, 'Não foi possível finalizar a sessão');
 }

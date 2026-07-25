@@ -93,7 +93,9 @@ export function useTreinoExecucao(treino: TreinoDetalhadoDTO): UseTreinoExecucao
     const chave = chaveSerie(itemAtual.exercicioId, serieAtualRef.current);
     const proximosItens: Record<string, SetStatus> = { ...registroRef.current.itens, [chave]: 'concluida' };
 
-    void registrarProgresso(sessaoIdRef.current ?? 0, itemAtual.exercicioId, serieAtualRef.current);
+    registrarProgresso(sessaoIdRef.current ?? 0, itemAtual.exercicioId, serieAtualRef.current).catch(
+      (error) => console.warn('[useTreinoExecucao] falha ao registrar progresso', error),
+    );
 
     const ultimaSerieDoExercicio = serieAtualRef.current >= itemAtual.series;
     const ultimoExercicio = exercicioIndexRef.current >= treino.itens.length - 1;
@@ -106,11 +108,11 @@ export function useTreinoExecucao(treino: TreinoDetalhadoDTO): UseTreinoExecucao
       setRegistro(registroFinal);
       setStatus('CONCLUIDA');
       countdown.pause();
-      void finalizarSessao(sessaoIdRef.current ?? 0, {
+      finalizarSessao(sessaoIdRef.current ?? 0, {
         status: 'CONCLUIDA',
         tempoRealizadoSegundos: registroFinal.tempoRealizadoSegundos,
         percentualConcluido: calcularPercentual(proximosItens, treino),
-      });
+      }).catch((error) => console.warn('[useTreinoExecucao] falha ao finalizar sessao', error));
       return;
     }
 
@@ -133,9 +135,11 @@ export function useTreinoExecucao(treino: TreinoDetalhadoDTO): UseTreinoExecucao
 
   useEffect(() => {
     inicioRef.current = Date.now();
-    void iniciarSessao(treino.id, PARTICIPANTE_ID_PLACEHOLDER).then(({ sessaoId }) => {
-      sessaoIdRef.current = sessaoId;
-    });
+    iniciarSessao(treino.id, PARTICIPANTE_ID_PLACEHOLDER)
+      .then(({ sessaoId }) => {
+        sessaoIdRef.current = sessaoId;
+      })
+      .catch((error) => console.warn('[useTreinoExecucao] falha ao iniciar sessao', error));
     countdown.start();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -187,11 +191,11 @@ export function useTreinoExecucao(treino: TreinoDetalhadoDTO): UseTreinoExecucao
       tempoRealizadoSegundos: tempoDecorridoSegundos(),
     };
     setRegistro(registroFinal);
-    void finalizarSessao(sessaoIdRef.current ?? 0, {
+    finalizarSessao(sessaoIdRef.current ?? 0, {
       status: 'INTERROMPIDA',
       tempoRealizadoSegundos: registroFinal.tempoRealizadoSegundos,
       percentualConcluido: calcularPercentual(registroFinal.itens, treino),
-    });
+    }).catch((error) => console.warn('[useTreinoExecucao] falha ao finalizar sessao', error));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tempoDecorridoSegundos]);
 
