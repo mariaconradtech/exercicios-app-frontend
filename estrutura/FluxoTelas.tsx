@@ -11,72 +11,66 @@ import {
   useWindowDimensions,
 } from 'react-native';
 
+import { buscarTreinoAtivo, enviarFeedback, resolverApiBaseUrl } from '../services/treinoService';
 import TelaFeedback from '../telas/TelaFeedback';
 import TelaInstrucao from '../telas/TelaInstrucao';
+import TelaTreinoExecucao from '../telas/TelaTreinoExecucao';
+import { treinoMock } from '../services/treinoMock';
+import type { TreinoDetalhadoDTO } from '../types/treino';
 
-type TrainingStep = 'intro' | 'setup' | 'feedback';
+type TrainingStep = 'intro' | 'execucao' | 'feedback';
 
 export default function FluxoTelas() {
-  const [screenIndex, setScreenIndex] = React.useState<TrainingStep>('feedback');
+  const [screenIndex, setScreenIndex] = React.useState<TrainingStep>('intro');
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [treino, setTreino] = React.useState<TreinoDetalhadoDTO | null>(null);
+  const [treinoLoading, setTreinoLoading] = React.useState(true);
+  const [treinoError, setTreinoError] = React.useState<string | null>(null);
+  const [sessaoId, setSessaoId] = React.useState<number | null>(null);
   const { width } = useWindowDimensions();
   const isCompact = width < 900;
 
+  React.useEffect(() => {
+    buscarTreinoAtivo(1)
+      .then(setTreino)
+      .catch((error) => {
+        setTreinoError(error instanceof Error ? error.message : 'Erro ao carregar o treino');
+      })
+      .finally(() => setTreinoLoading(false));
+  }, []);
+
+  const treinoParaRender = treino ?? treinoMock;
+  const primeiraInstrucao = treinoParaRender.itens[0]?.exercicio?.instrucao ?? [];
+  const mensagemInstrucao = Array.isArray(primeiraInstrucao)
+    ? primeiraInstrucao.join('\n')
+    : String(primeiraInstrucao);
+
   const handleBackPress = () => {
-    if (screenIndex === 'setup') {
-      setScreenIndex('intro');
+    if (screenIndex === 'feedback') {
+      setScreenIndex('execucao');
       return;
     }
 
-    if (screenIndex === 'feedback') {
-      setScreenIndex('setup');
+    if (screenIndex === 'execucao') {
+      setScreenIndex('intro');
     }
   };
 
   const handlePrimaryPress = () => {
     if (screenIndex === 'intro') {
-      setScreenIndex('setup');
-      return;
-    }
-
-    if (screenIndex === 'setup') {
-      setScreenIndex('feedback');
+      setScreenIndex('execucao');
     }
   };
 
   const handleFeedbackSubmit = async (rating: number) => {
-    const apiBaseUrl = Platform.select({
-      android: 'http://10.0.2.2:3000',
-      ios: 'http://localhost:3000',
-      default: 'http://localhost:3000',
-    });
+    if (sessaoId === null) {
+      Alert.alert('Erro ao salvar', 'Sessão não encontrada para salvar a avaliação.');
+      return;
+    }
 
     try {
       setIsSubmitting(true);
-
-      const response = await fetch(`${apiBaseUrl}/avaliacoes`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          rating,
-          treino: {
-            nome: 'TREINO 1 - NÍVEL 1 - INICIANTE',
-            descricao: 'Treino enviado pela tela de feedback do aplicativo.',
-            fase: 'INICIANTE',
-            nivel: 1,
-            quantidadeSemanas: 1,
-          },
-        }),
-      });
-
-      const payload = await response.json().catch(() => ({}));
-
-      if (!response.ok) {
-        throw new Error(payload.error || 'Não foi possível salvar a avaliação.');
-      }
-
+      await enviarFeedback(sessaoId, rating);
       setScreenIndex('intro');
     } catch (error) {
       Alert.alert(
@@ -103,23 +97,38 @@ export default function FluxoTelas() {
         </View>
 
         <View style={[styles.screensRow, isCompact && styles.screensColumn]}>
-          {screenIndex === 'feedback' ? (
-            <TelaFeedback
-              onBackPress={handleBackPress}
-              onSubmit={handleFeedbackSubmit}
-              isSubmitting={isSubmitting}
-            />
-          ) : (
-            <TelaInstrucao
-              emoji={screenIndex === 'intro' ? '🤖' : '🪑'}
-              message={screenIndex === 'intro' ? 'Olá! Vamos começar o treino de hoje.' : 'Pegue uma cadeira'}
-              primaryLabel={screenIndex === 'intro' ? 'Próximo' : 'Avaliar'}
-              primaryVariant={screenIndex === 'intro' ? 'outline' : 'solid'}
-              activeDot={screenIndex === 'intro' ? 0 : 1}
-              onBackPress={handleBackPress}
-              onPrimaryPress={handlePrimaryPress}
-            />
-          )}
+        {screenIndex === 'feedback' ? (
+          <TelaFeedback
+            onBackPress={handleBackPress}
+            onSubmit={handleFeedbackSubmit}
+            isSubmitting={isSubmitting}
+          />
+        ) : screenIndex === 'execucao' ? (
+          <TelaTreinoExecucao
+            treino={treinoParaRender}
+            onBackPress={handleBackPress}
+            onFinish={(registro, sessaoId) => {
+              setSessaoId(sessaoId);
+              setScreenIndex('feedback');
+            }}
+          />
+        ) : (
+          <TelaInstrucao
+            emoji="🤖"
+            message={
+              treinoLoading
+                ? 'Carregando instruções do treino...'
+                : treinoError
+                ? `Erro: ${treinoError}`
+                : mensagemInstrucao || 'Olá! Vamos começar o treino de hoje.'
+            }
+            primaryLabel="Iniciar treino"
+            primaryVariant="solid"
+            activeDot={0}
+            onBackPress={handleBackPress}
+            onPrimaryPress={handlePrimaryPress}
+          />
+        )}
         </View>
       </ScrollView>
     </SafeAreaView>

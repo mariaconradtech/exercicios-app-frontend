@@ -49,6 +49,7 @@ export function useTreinoExecucao(treino: TreinoDetalhadoDTO): UseTreinoExecucao
   const [exercicioIndex, setExercicioIndex] = useState(0);
   const [serieAtual, setSerieAtual] = useState(1);
   const [registro, setRegistro] = useState<RegistroExecucao>({ itens: {}, tempoRealizadoSegundos: 0 });
+  const [sessaoId, setSessaoId] = useState<number | null>(null);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
 
   const exercicioAtual = treino.itens[exercicioIndex];
@@ -93,9 +94,7 @@ export function useTreinoExecucao(treino: TreinoDetalhadoDTO): UseTreinoExecucao
     const chave = chaveSerie(itemAtual.exercicioId, serieAtualRef.current);
     const proximosItens: Record<string, SetStatus> = { ...registroRef.current.itens, [chave]: 'concluida' };
 
-    registrarProgresso(sessaoIdRef.current ?? 0, itemAtual.exercicioId, serieAtualRef.current).catch(
-      (error) => console.warn('[useTreinoExecucao] falha ao registrar progresso', error),
-    );
+    registrarProgresso(sessaoIdRef.current ?? 0, itemAtual.exercicioId, serieAtualRef.current).catch(() => {});
 
     const ultimaSerieDoExercicio = serieAtualRef.current >= itemAtual.series;
     const ultimoExercicio = exercicioIndexRef.current >= treino.itens.length - 1;
@@ -112,7 +111,7 @@ export function useTreinoExecucao(treino: TreinoDetalhadoDTO): UseTreinoExecucao
         status: 'CONCLUIDA',
         tempoRealizadoSegundos: registroFinal.tempoRealizadoSegundos,
         percentualConcluido: calcularPercentual(proximosItens, treino),
-      }).catch((error) => console.warn('[useTreinoExecucao] falha ao finalizar sessao', error));
+      }).catch(() => {});
       return;
     }
 
@@ -138,8 +137,9 @@ export function useTreinoExecucao(treino: TreinoDetalhadoDTO): UseTreinoExecucao
     iniciarSessao(treino.id, PARTICIPANTE_ID_PLACEHOLDER)
       .then(({ sessaoId }) => {
         sessaoIdRef.current = sessaoId;
+        setSessaoId(sessaoId);
       })
-      .catch((error) => console.warn('[useTreinoExecucao] falha ao iniciar sessao', error));
+      .catch(() => {});
     countdown.start();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -195,7 +195,7 @@ export function useTreinoExecucao(treino: TreinoDetalhadoDTO): UseTreinoExecucao
       status: 'INTERROMPIDA',
       tempoRealizadoSegundos: registroFinal.tempoRealizadoSegundos,
       percentualConcluido: calcularPercentual(registroFinal.itens, treino),
-    }).catch((error) => console.warn('[useTreinoExecucao] falha ao finalizar sessao', error));
+    }).catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tempoDecorridoSegundos]);
 
@@ -213,6 +213,7 @@ export function useTreinoExecucao(treino: TreinoDetalhadoDTO): UseTreinoExecucao
     proximoExercicio,
     remaining: countdown.remaining,
     registro,
+    sessaoId,
     isConfirmModalOpen,
     pausar,
     retomar,

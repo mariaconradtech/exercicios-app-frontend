@@ -16,7 +16,7 @@ import type { RegistroExecucao, TreinoDetalhadoDTO } from '../types/treino';
 
 type TelaTreinoExecucaoProps = {
   treino: TreinoDetalhadoDTO;
-  onFinish?: (registro: RegistroExecucao) => void;
+  onFinish?: (registro: RegistroExecucao, sessaoId: number | null) => void;
   onBackPress?: () => void;
 };
 
@@ -32,6 +32,7 @@ export default function TelaTreinoExecucao({ treino, onFinish, onBackPress }: Te
     proximoExercicio,
     remaining,
     registro,
+    sessaoId,
     isConfirmModalOpen,
     pausar,
     retomar,
@@ -44,9 +45,9 @@ export default function TelaTreinoExecucao({ treino, onFinish, onBackPress }: Te
   React.useEffect(() => {
     if ((status === 'CONCLUIDA' || status === 'INTERROMPIDA') && !jaNotificouRef.current) {
       jaNotificouRef.current = true;
-      onFinish?.(registro);
+      onFinish?.(registro, sessaoId);
     }
-  }, [status, registro, onFinish]);
+  }, [status, registro, onFinish, sessaoId]);
 
   const pausado = status === 'PAUSADO';
 
@@ -94,7 +95,7 @@ export default function TelaTreinoExecucao({ treino, onFinish, onBackPress }: Te
           nome={exercicioAtual.exercicio.nome}
           onBackPress={onBackPress}
         />
-        <ExercicioMidia />
+        <ExercicioMidia videoUrl={exercicioAtual.exercicio.videoUrl} />
         <View style={styles.timerWrap}>
           <TimerExecucao segundosRestantes={remaining} />
         </View>
