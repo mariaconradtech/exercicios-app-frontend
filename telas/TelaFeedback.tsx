@@ -1,82 +1,50 @@
 import React from 'react';
-import { Image, PanResponder, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 
 type TelaFeedbackProps = {
   onSubmit?: (rating: number) => void | Promise<void>;
   onBackPress?: () => void;
   isSubmitting?: boolean;
+  errorMessage?: string | null;
 };
 
-const ratingLabels = [
-  '0 - Muito Fácil',
-  '1',
-  '2 - Fácil',
-  '3',
-  '4 - Um pouco fácil',
-  '5',
-  '6 - Um pouco difícil',
-  '7',
-  '8 - Difícil',
-  '9',
-  '10 - Muito difícil',
-];
+const legendaPorNota: Record<number, string> = {
+  0: 'Extremamente Fácil',
+  2: 'Fácil',
+  4: 'Um Pouco Fácil',
+  6: 'Um Pouco Difícil',
+  8: 'Difícil',
+  10: 'Extremamente Difícil',
+};
 
-export default function TelaFeedback({ onSubmit, onBackPress, isSubmitting }: TelaFeedbackProps) {
+const avatarPorNota: Record<number, ReturnType<typeof require>> = {
+  0: require('../assets/bonecos/boneco-1.png'),
+  3: require('../assets/bonecos/boneco-2.png'),
+  7: require('../assets/bonecos/boneco-3.png'),
+  10: require('../assets/bonecos/boneco-4.png'),
+};
+
+const tamanhoAvatarPorNota: Record<number, { width: number; height: number }> = {
+  0: { width: 32, height: 35 },
+  3: { width: 44, height: 48 },
+  7: { width: 58, height: 63 },
+  10: { width: 70, height: 76 },
+};
+
+const notas = Array.from({ length: 11 }, (_, i) => i);
+const DEGRAU_PX = 30;
+
+export default function TelaFeedback({
+  onSubmit,
+  onBackPress,
+  isSubmitting,
+  errorMessage,
+}: TelaFeedbackProps) {
   const [selectedRating, setSelectedRating] = React.useState(0);
-  const [trackHeight, setTrackHeight] = React.useState(0);
-  const [trackTop, setTrackTop] = React.useState(0);
-
-  const thumbSize = 24;
-  const trackPaddingTop = 20;
-  const trackPaddingBottom = 20;
-  const usableTrackHeight = Math.max(0, trackHeight - trackPaddingTop - trackPaddingBottom - thumbSize);
 
   const handleSelectRating = (rating: number) => {
     setSelectedRating(rating);
   };
-
-  const updateRatingFromTouch = React.useCallback(
-    (locationY: number) => {
-      if (!usableTrackHeight) {
-        return;
-      }
-
-      const clampedY = Math.max(
-        trackPaddingTop,
-        Math.min(trackHeight - trackPaddingBottom - thumbSize, locationY),
-      );
-      const ratio = (clampedY - trackPaddingTop) / usableTrackHeight;
-      const nextRating = Math.round(ratio * 10);
-      setSelectedRating(Math.max(0, Math.min(10, nextRating)));
-    },
-    [thumbSize, trackHeight, trackPaddingBottom, trackPaddingTop, usableTrackHeight],
-  );
-
-  const panResponder = React.useMemo(
-    () =>
-      PanResponder.create({
-        onStartShouldSetPanResponder: () => true,
-        onMoveShouldSetPanResponder: () => true,
-        onStartShouldSetPanResponderCapture: () => true,
-        onMoveShouldSetPanResponderCapture: () => true,
-        onPanResponderTerminationRequest: () => false,
-        onPanResponderGrant: (_, gestureState) => {
-          updateRatingFromTouch(gestureState.y0 - trackTop + gestureState.dy);
-        },
-        onPanResponderMove: (_, gestureState) => {
-          updateRatingFromTouch(gestureState.moveY - trackTop);
-        },
-        onPanResponderRelease: (_, gestureState) => {
-          updateRatingFromTouch(gestureState.moveY - trackTop);
-        },
-        onPanResponderTerminate: (_, gestureState) => {
-          updateRatingFromTouch(gestureState.moveY - trackTop);
-        },
-      }),
-    [trackTop, updateRatingFromTouch],
-  );
-
-  const barTop = trackPaddingTop + (usableTrackHeight * selectedRating) / 10;
 
   return (
     <View style={styles.feedbackCard}>
@@ -96,60 +64,37 @@ export default function TelaFeedback({ onSubmit, onBackPress, isSubmitting }: Te
         <Text style={styles.title}>Como foi o treino?</Text>
         <Text style={styles.subtitle}>Avalie o quão intenso esse treino foi para você</Text>
 
-        <View style={styles.feedbackArea}>
-          <View style={styles.avatarColumn}>
-            <Image
-              source={require('../assets/bonecos/boneco-1.png')}
-              style={styles.avatarIllustration}
-              resizeMode="contain"
-            />
-            <Image
-              source={require('../assets/bonecos/boneco-2.png')}
-              style={styles.avatarIllustration}
-              resizeMode="contain"
-            />
-            <Image
-              source={require('../assets/bonecos/boneco-3.png')}
-              style={styles.avatarIllustration}
-              resizeMode="contain"
-            />
-            <Image
-              source={require('../assets/bonecos/boneco-4.png')}
-              style={[styles.avatarIllustration, styles.avatarIllustrationLower]}
-              resizeMode="contain"
-            />
-          </View>
+        <View style={styles.escalaWrap}>
+          <View style={styles.linhaDiagonal} />
 
-          <View
-            style={styles.sliderTrackWrap}
-            onLayout={(event) => {
-              setTrackHeight(event.nativeEvent.layout.height);
-              setTrackTop(event.nativeEvent.layout.y);
-            }}
-            {...panResponder.panHandlers}
-          >
-            <View style={styles.sliderTrack} />
-            <View style={[styles.sliderThumb, { top: barTop }]} />
-          </View>
+          <View style={styles.degrausRow}>
+            {notas.map((nota) => {
+              const isSelected = nota === selectedRating;
+              const avatarSource = avatarPorNota[nota];
+              const tamanhoAvatar = tamanhoAvatarPorNota[nota];
 
-          <View style={styles.ratingList}>
-            {ratingLabels.map((label, index) => {
-              const isSelected = index === selectedRating;
               return (
-                <Pressable
-                  key={label}
-                  onPress={() => handleSelectRating(index)}
-                  style={styles.ratingItem}
-                >
-                  <View style={[styles.ratingDot, isSelected && styles.ratingDotActive]} />
-                  <Text style={[styles.ratingText, isSelected && styles.ratingTextActive]}>
-                    {label}
-                  </Text>
-                </Pressable>
+                <View key={nota} style={[styles.degrau, { marginBottom: nota * DEGRAU_PX }]}>
+                  <View style={styles.avatarSlot}>
+                    {avatarSource ? (
+                      <Image source={avatarSource} style={tamanhoAvatar} resizeMode="contain" />
+                    ) : null}
+                  </View>
+
+                  <Pressable onPress={() => handleSelectRating(nota)} hitSlop={8}>
+                    <Text style={[styles.notaTexto, isSelected && styles.notaTextoAtiva]}>{nota}</Text>
+                  </Pressable>
+                </View>
               );
             })}
           </View>
         </View>
+
+        <Text style={styles.legendaSelecionada}>
+          {legendaPorNota[selectedRating] ?? `Nota ${selectedRating}`}
+        </Text>
+
+        {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
 
         <Pressable
           style={[styles.submitButton, (!onSubmit || isSubmitting) && styles.submitButtonDisabled]}
@@ -251,92 +196,65 @@ const styles = StyleSheet.create({
     color: '#6d7482',
     marginBottom: 10,
   },
-  feedbackArea: {
+  escalaWrap: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 12,
-    marginBottom: 10,
-  },
-  avatarColumn: {
-    width: 100,
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingTop: 8,
-    paddingBottom: 8,
-  },
-  avatarIllustration: {
-    width: 96,
-    height: 104,
-    marginVertical: 8,
-  },
-  avatarIllustrationLower: {
-    marginTop: 18,
-  },
-  sliderTrackWrap: {
-    width: 26,
-    height: 520,
-    alignItems: 'center',
-    justifyContent: 'flex-start',
+    justifyContent: 'flex-end',
     position: 'relative',
-    paddingTop: 16,
+    marginTop: 26,
+    marginBottom: 16,
   },
-  sliderTrack: {
-    position: 'absolute',
-    top: 20,
-    bottom: 20,
-    width: 10,
-    borderRadius: 99,
-    backgroundColor: '#e5e8ef',
-    left: '50%',
-    transform: [{ translateX: -5 }],
-  },
-  sliderThumb: {
+  linhaDiagonal: {
     position: 'absolute',
     left: '50%',
-    width: 24,
-    height: 24,
-    borderRadius: 999,
-    backgroundColor: '#4467f2',
-    transform: [{ translateX: -12 }],
-    shadowColor: '#4467f2',
-    shadowOpacity: 0.28,
-    shadowRadius: 6,
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-  },
-  ratingList: {
-    flex: 1,
-    paddingTop: 0,
-    paddingBottom: 4,
-    alignSelf: 'stretch',
-  },
-  ratingItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    minHeight: 48,
-    paddingVertical: 4,
-    alignSelf: 'stretch',
-  },
-  ratingDot: {
-    width: 4,
+    bottom: 170,
+    width: 420,
+    marginLeft: -210,
     height: 4,
     borderRadius: 99,
-    backgroundColor: '#cad0dc',
-    marginRight: 8,
+    backgroundColor: '#1d2433',
+    transform: [{ rotate: '-46deg' }],
   },
-  ratingDotActive: {
-    backgroundColor: '#4467f2',
+  degrausRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+    width: '100%',
+    paddingHorizontal: 30,
   },
-  ratingText: {
+  degrau: {
+    alignItems: 'center',
+    width: 26,
+  },
+  avatarSlot: {
+    height: 90,
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    marginBottom: 26,
+  },
+  notaTexto: {
+    fontSize: 13,
+    lineHeight: 16,
+    fontWeight: '800',
+    color: '#20222b',
+  },
+  notaTextoAtiva: {
+    color: '#4467f2',
+    fontSize: 16,
+  },
+  legendaSelecionada: {
     fontSize: 14,
     lineHeight: 18,
-    color: '#2b2f38',
-  },
-  ratingTextActive: {
     fontWeight: '700',
+    color: '#4467f2',
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  errorText: {
+    fontSize: 12,
+    lineHeight: 16,
+    color: '#e5484d',
+    textAlign: 'center',
+    marginBottom: 4,
   },
   submitButton: {
     height: 40,

@@ -1,7 +1,6 @@
 import React from 'react';
 import { StatusBar } from 'expo-status-bar';
 import {
-  Alert,
   SafeAreaView,
   ScrollView,
   StyleSheet,
@@ -11,14 +10,26 @@ import {
   useWindowDimensions,
 } from 'react-native';
 
-import { buscarTreinoAtivo, enviarFeedback } from '../services/treinoService';
+import { treinoMock } from '../services/treinoMock';
+import {
+  buscarTreinoAtivo,
+  enviarFeedback,
+  login,
+  redefinirSenha,
+  salvarAvatar,
+  type GeneroAvatar,
+  type ParticipanteLogado,
+} from '../services/treinoService';
+import TelaEscolhaAvatar from '../telas/TelaEscolhaAvatar';
 import TelaFeedback from '../telas/TelaFeedback';
 import TelaEngajamento from '../telas/TelaEngajamento';
 import TelaInstrucao from '../telas/TelaInstrucao';
+import TelaLogin from '../telas/TelaLogin';
+import TelaRedefinirSenha from '../telas/TelaRedefinirSenha';
 import TelaTreinoExecucao from '../telas/TelaTreinoExecucao';
-import { treinoMock } from '../services/treinoMock';
-import type { TreinoDetalhadoDTO } from '../types/treino';
+import type { RegistroExecucao, TreinoDetalhadoDTO } from '../types/treino';
 
+type Etapa = 'login' | 'redefinirSenha' | 'escolhaAvatar' | 'app';
 type TrainingStep = 'intro' | 'execucao' | 'feedback';
 type Aba = 'inicio' | 'historico' | 'treino' | 'ranking' | 'perfil';
 
@@ -31,9 +42,19 @@ const itensAba: Array<{ key: Aba; icon: string; label: string }> = [
 ];
 
 export default function FluxoTelas() {
-  const [abaAtiva, setAbaAtiva] = React.useState<Aba>('ranking');
+  const [etapa, setEtapa] = React.useState<Etapa>('login');
+  const [abaAtiva, setAbaAtiva] = React.useState<Aba>('treino');
   const [screenIndex, setScreenIndex] = React.useState<TrainingStep>('intro');
-  const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [isLoggingIn, setIsLoggingIn] = React.useState(false);
+  const [isResettingPassword, setIsResettingPassword] = React.useState(false);
+  const [isSavingAvatar, setIsSavingAvatar] = React.useState(false);
+  const [isSubmittingFeedback, setIsSubmittingFeedback] = React.useState(false);
+  const [loginError, setLoginError] = React.useState<string | null>(null);
+  const [redefinirSenhaError, setRedefinirSenhaError] = React.useState<string | null>(null);
+  const [avatarError, setAvatarError] = React.useState<string | null>(null);
+  const [feedbackError, setFeedbackError] = React.useState<string | null>(null);
+  const [participante, setParticipante] = React.useState<ParticipanteLogado | null>(null);
+  const [avatarGenero, setAvatarGenero] = React.useState<GeneroAvatar | null>(null);
   const [treino, setTreino] = React.useState<TreinoDetalhadoDTO | null>(null);
   const [treinoLoading, setTreinoLoading] = React.useState(true);
   const [treinoError, setTreinoError] = React.useState<string | null>(null);
@@ -67,29 +88,28 @@ export default function FluxoTelas() {
     }
   };
 
-  const handlePrimaryPress = () => {
-    if (screenIndex === 'intro') {
-      setScreenIndex('execucao');
-    }
+  const handleTreinoFinish = (_registro: RegistroExecucao, sessaoIdFinalizada: number | null) => {
+    setSessaoId(sessaoIdFinalizada);
+    setScreenIndex('feedback');
   };
 
   const handleFeedbackSubmit = async (rating: number) => {
     if (sessaoId === null) {
-      Alert.alert('Erro ao salvar', 'Sessão não encontrada para salvar a avaliação.');
+      setFeedbackError('Sessão não encontrada para salvar a avaliação.');
       return;
     }
 
     try {
-      setIsSubmitting(true);
+      setIsSubmittingFeedback(true);
       await enviarFeedback(sessaoId, rating);
+      setFeedbackError(null);
       setScreenIndex('intro');
     } catch (error) {
-      Alert.alert(
-        'Erro ao salvar',
+      setFeedbackError(
         error instanceof Error ? error.message : 'Não foi possível salvar sua avaliação.',
       );
     } finally {
-      setIsSubmitting(false);
+      setIsSubmittingFeedback(false);
     }
   };
 
@@ -108,17 +128,24 @@ export default function FluxoTelas() {
           <TelaFeedback
             onBackPress={handleBackPress}
             onSubmit={handleFeedbackSubmit}
-            isSubmitting={isSubmitting}
+            isSubmitting={isSubmittingFeedback}
+            errorMessage={feedbackError}
           />
         ) : screenIndex === 'execucao' ? (
-          <TelaTreinoExecucao
-            treino={treinoParaRender}
-            onBackPress={handleBackPress}
-            onFinish={(registro, novaSessaoId) => {
-              setSessaoId(novaSessaoId);
-              setScreenIndex('feedback');
-            }}
-          />
+          <View style={styles.phoneBoundary}>
+            {participante ? (
+              <TelaTreinoExecucao
+                treino={treinoParaRender}
+                participanteId={participante.participanteId}
+                onFinish={handleTreinoFinish}
+                onBackPress={handleBackPress}
+              />
+            ) : (
+              <View style={styles.phoneBoundaryPlaceholder}>
+                <Text style={styles.placeholderText}>Faça login para iniciar o treino.</Text>
+              </View>
+            )}
+          </View>
         ) : (
           <TelaInstrucao
             emoji="🤖"
@@ -133,7 +160,7 @@ export default function FluxoTelas() {
             primaryVariant="solid"
             activeDot={0}
             onBackPress={handleBackPress}
-            onPrimaryPress={handlePrimaryPress}
+            onPrimaryPress={() => setScreenIndex('execucao')}
           />
         )}
       </View>
@@ -147,12 +174,106 @@ export default function FluxoTelas() {
     </View>
   );
 
+  if (etapa === 'login') {
+    return (
+      <SafeAreaView style={styles.appShell}>
+        <StatusBar style="dark" />
+        <ScrollView contentContainerStyle={styles.scrollContent}>
+          <TelaLogin
+            isSubmitting={isLoggingIn}
+            errorMessage={loginError}
+            onForgotPasswordPress={() => setEtapa('redefinirSenha')}
+            onSubmit={async (cpf, senha) => {
+              try {
+                setIsLoggingIn(true);
+                const participanteLogado = await login(cpf, senha);
+                setLoginError(null);
+                setParticipante(participanteLogado);
+                setEtapa('escolhaAvatar');
+              } catch (error) {
+                setLoginError(error instanceof Error ? error.message : 'Não foi possível entrar.');
+              } finally {
+                setIsLoggingIn(false);
+              }
+            }}
+          />
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
+
+  if (etapa === 'redefinirSenha') {
+    return (
+      <SafeAreaView style={styles.appShell}>
+        <StatusBar style="dark" />
+        <ScrollView contentContainerStyle={styles.scrollContent}>
+          <TelaRedefinirSenha
+            isSubmitting={isResettingPassword}
+            errorMessage={redefinirSenhaError}
+            onSubmit={async (cpf, novaSenha) => {
+              try {
+                setIsResettingPassword(true);
+                await redefinirSenha(cpf, novaSenha);
+                setRedefinirSenhaError(null);
+                setEtapa('login');
+              } catch (error) {
+                setRedefinirSenhaError(
+                  error instanceof Error ? error.message : 'Não foi possível redefinir a senha.',
+                );
+              } finally {
+                setIsResettingPassword(false);
+              }
+            }}
+          />
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
+
+  if (etapa === 'escolhaAvatar') {
+    return (
+      <SafeAreaView style={styles.appShell}>
+        <StatusBar style="dark" />
+        <ScrollView contentContainerStyle={styles.scrollContent}>
+          <TelaEscolhaAvatar
+            isSubmitting={isSavingAvatar}
+            errorMessage={avatarError}
+            initialGenero={avatarGenero}
+            onBackPress={() => setEtapa('login')}
+            onContinue={async (genero) => {
+              setAvatarGenero(genero);
+              if (participante) {
+                try {
+                  setIsSavingAvatar(true);
+                  await salvarAvatar(participante.participanteId, genero);
+                  setAvatarError(null);
+                  setEtapa('app');
+                } catch (error) {
+                  setAvatarError(
+                    error instanceof Error
+                      ? error.message
+                      : 'Não foi possível salvar o avatar.',
+                  );
+                } finally {
+                  setIsSavingAvatar(false);
+                }
+              } else {
+                setAvatarError(null);
+                setEtapa('app');
+              }
+            }}
+          />
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.appShell}>
       <StatusBar style="dark" />
 
       <View style={styles.mainArea}>
-        {abaAtiva === 'ranking' && <TelaEngajamento participanteId={1} />}
+        {abaAtiva === 'ranking' && <TelaEngajamento participanteId={participante?.participanteId ?? 1} />}
         {abaAtiva === 'treino' && renderTreino()}
         {abaAtiva === 'inicio' &&
           renderPlaceholder('Início', 'Resumo geral em construção. Use a aba Ranking para visualizar o engajamento.')}
@@ -193,6 +314,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 28,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   hero: {
     width: '100%',
@@ -230,6 +352,28 @@ const styles = StyleSheet.create({
   screensColumn: {
     flexDirection: 'column',
     alignItems: 'center',
+  },
+  phoneBoundary: {
+    width: '100%',
+    maxWidth: 390,
+    height: 720,
+    borderRadius: 22,
+    overflow: 'hidden',
+    shadowColor: '#121826',
+    shadowOpacity: 0.12,
+    shadowRadius: 18,
+    shadowOffset: {
+      width: 0,
+      height: 10,
+    },
+    elevation: 6,
+  },
+  phoneBoundaryPlaceholder: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#ffffff',
+    paddingHorizontal: 24,
   },
   placeholder: {
     flex: 1,

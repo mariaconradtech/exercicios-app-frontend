@@ -5,6 +5,9 @@ import type { TreinoDetalhadoDTO } from '../types/treino';
 import type { EngajamentoDTO } from '../types/engajamento';
 
 // Contrato da API (implementado no repo exercicios-app-backend, src/routes/):
+//   login               -> POST  /login
+//   redefinirSenha      -> PATCH /senha
+//   salvarAvatar        -> PATCH /participantes/:participanteId/avatar
 //   buscarTreinoAtivo   -> GET   /treinos/:treinoId/execucao
 //   iniciarSessao       -> POST  /sessoes
 //   registrarProgresso  -> PATCH /sessoes/:sessaoId/progresso
@@ -57,6 +60,61 @@ async function fetchComTimeout(input: RequestInfo | URL, init?: RequestInit): Pr
 async function tratarResposta(response: Response, mensagemErro: string): Promise<void> {
   if (!response.ok) {
     throw new Error(`${mensagemErro} (status ${response.status})`);
+  }
+}
+
+export interface ParticipanteLogado {
+  participanteId: number;
+  nome: string;
+  cpf: string;
+}
+
+export async function login(cpf: string, senha: string): Promise<ParticipanteLogado> {
+  const response = await fetch(`${API_BASE_URL}/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ cpf, senha }),
+  });
+
+  const payload = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(payload.error || 'Não foi possível entrar');
+  }
+
+  return payload;
+}
+
+export async function redefinirSenha(cpf: string, novaSenha: string): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/senha`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ cpf, novaSenha }),
+  });
+
+  const payload = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(payload.error || 'Não foi possível redefinir a senha');
+  }
+}
+
+export type GeneroAvatar = 'FEMININO' | 'MASCULINO';
+
+export async function salvarAvatar(
+  participanteId: number,
+  genero: GeneroAvatar,
+): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/participantes/${participanteId}/avatar`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ avatarGenero: genero }),
+  });
+
+  const payload = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(payload.error || 'Não foi possível salvar o avatar');
   }
 }
 

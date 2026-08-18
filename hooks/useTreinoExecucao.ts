@@ -10,10 +10,6 @@ import {
   type TreinoDetalhadoDTO,
 } from '../types/treino';
 
-// Ainda não há autenticação/sessão de usuário ligada a esta tela isolada —
-// fica um placeholder até essa decisão existir (fora do escopo desta US).
-const PARTICIPANTE_ID_PLACEHOLDER = 1;
-
 interface UseTreinoExecucaoResult {
   status: StatusTreino;
   faseVisivel: 'EXECUCAO' | 'DESCANSO';
@@ -45,7 +41,10 @@ function calcularPercentual(itens: Record<string, SetStatus>, treino: TreinoDeta
   return Math.round((concluidas / total) * 1000) / 10;
 }
 
-export function useTreinoExecucao(treino: TreinoDetalhadoDTO): UseTreinoExecucaoResult {
+export function useTreinoExecucao(
+  treino: TreinoDetalhadoDTO,
+  participanteId: number,
+): UseTreinoExecucaoResult {
   const [status, setStatus] = useState<StatusTreino>('EXECUTANDO');
   const [exercicioIndex, setExercicioIndex] = useState(0);
   const [serieAtual, setSerieAtual] = useState(1);
@@ -135,7 +134,7 @@ export function useTreinoExecucao(treino: TreinoDetalhadoDTO): UseTreinoExecucao
 
   useEffect(() => {
     inicioRef.current = Date.now();
-    iniciarSessao(treino.id, PARTICIPANTE_ID_PLACEHOLDER)
+    iniciarSessao(treino.id, participanteId)
       .then(({ sessaoId }) => {
         sessaoIdRef.current = sessaoId;
         setSessaoId(sessaoId);
