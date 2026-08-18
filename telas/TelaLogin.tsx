@@ -65,7 +65,7 @@ export default function TelaLogin({
               secureTextEntry={!senhaVisivel}
             />
             <Pressable onPress={() => setSenhaVisivel((atual) => !atual)} hitSlop={10}>
-              <IconeOlho visivel={!senhaVisivel} />
+              <IconeOlho visivel={senhaVisivel} />
             </Pressable>
           </View>
         </View>
