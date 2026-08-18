@@ -9,13 +9,20 @@ import type { TreinoDetalhadoDTO } from '../types/treino';
 //   registrarProgresso  -> PATCH /sessoes/:sessaoId/progresso
 //   finalizarSessao     -> PATCH /sessoes/:sessaoId/finalizar
 
-function resolverApiBaseUrl(): string {
-  // Em dispositivo físico via Expo Go, localhost/10.0.2.2 não apontam pro
-  // computador — usamos o mesmo host que o Metro Bundler já detectou (o IP
-  // da máquina na rede local) para não precisar configurar isso na mão.
+export function resolverApiBaseUrl(): string {
+  const envApiUrl = process.env.EXPO_PUBLIC_API_URL;
+  if (envApiUrl) {
+    return envApiUrl;
+  }
+
   const hostUri = Constants.expoConfig?.hostUri ?? Constants.expoGoConfig?.debuggerHost;
   if (hostUri) {
     const host = hostUri.split(':')[0];
+
+    if (Platform.OS === 'android' && (host === 'localhost' || host === '127.0.0.1')) {
+      return 'http://10.0.2.2:3000';
+    }
+
     return `http://${host}:3000`;
   }
 
@@ -71,6 +78,7 @@ export interface FinalizarSessaoPayload {
   status: 'CONCLUIDA' | 'INTERROMPIDA';
   tempoRealizadoSegundos: number;
   percentualConcluido: number;
+  esforcoOmni?: number;
 }
 
 export async function finalizarSessao(
@@ -83,4 +91,17 @@ export async function finalizarSessao(
     body: JSON.stringify(dados),
   });
   await tratarResposta(response, 'Não foi possível finalizar a sessão');
+}
+
+export async function enviarFeedback(sessaoId: number, rating: number): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/avaliacoes`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      sessaoId: Number(sessaoId),
+      rating: Number(rating),
+    }),
+  });
+  
+  await tratarResposta(response, 'Não foi possível enviar a avaliação');
 }

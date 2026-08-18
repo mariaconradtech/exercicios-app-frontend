@@ -3,7 +3,7 @@ import { PanResponder, Pressable, StyleSheet, Text, View } from 'react-native';
 
 type TelaInstrucaoProps = {
   emoji: string;
-  message: string;
+  message: string | string[];
   primaryLabel: string;
   primaryVariant?: 'outline' | 'solid';
   activeDot: number;
@@ -22,6 +22,12 @@ export default function TelaInstrucao({
   onBackPress,
   onPrimaryPress,
 }: TelaInstrucaoProps) {
+  const messageLines = React.useMemo(() => {
+    if (Array.isArray(message)) {
+      return message;
+    }
+    return message.split('\n').map((line) => line.trim()).filter(Boolean);
+  }, [message]);
   const panResponder = React.useMemo(
     () =>
       PanResponder.create({
@@ -85,7 +91,9 @@ export default function TelaInstrucao({
       h(
         View,
         { style: styles.messageCard },
-        h(Text, { style: styles.messageText }, message),
+        ...messageLines.map((line, index) =>
+          h(Text, { key: index, style: styles.messageText }, line),
+        ),
       ),
       h(View, { style: styles.dotsRow }, ...dots),
       h(
