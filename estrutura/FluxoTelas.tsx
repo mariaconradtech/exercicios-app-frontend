@@ -8,8 +8,11 @@ import {
   enviarFeedback,
   login,
   redefinirSenha,
+  salvarAvatar,
+  type GeneroAvatar,
   type ParticipanteLogado,
 } from '../services/treinoService';
+import TelaEscolhaAvatar from '../telas/TelaEscolhaAvatar';
 import TelaFeedback from '../telas/TelaFeedback';
 import TelaInstrucao from '../telas/TelaInstrucao';
 import TelaLogin from '../telas/TelaLogin';
@@ -17,17 +20,20 @@ import TelaRedefinirSenha from '../telas/TelaRedefinirSenha';
 import TelaTreinoExecucao from '../telas/TelaTreinoExecucao';
 import type { RegistroExecucao, TreinoDetalhadoDTO } from '../types/treino';
 
-type Etapa = 'login' | 'redefinirSenha' | 'intro' | 'execucao' | 'feedback';
+type Etapa = 'login' | 'redefinirSenha' | 'escolhaAvatar' | 'intro' | 'execucao' | 'feedback';
 
 export default function FluxoTelas() {
   const [etapa, setEtapa] = React.useState<Etapa>('login');
   const [isSubmittingFeedback, setIsSubmittingFeedback] = React.useState(false);
   const [isLoggingIn, setIsLoggingIn] = React.useState(false);
   const [isResettingPassword, setIsResettingPassword] = React.useState(false);
+  const [isSavingAvatar, setIsSavingAvatar] = React.useState(false);
   const [loginError, setLoginError] = React.useState<string | null>(null);
   const [redefinirSenhaError, setRedefinirSenhaError] = React.useState<string | null>(null);
+  const [avatarError, setAvatarError] = React.useState<string | null>(null);
   const [feedbackError, setFeedbackError] = React.useState<string | null>(null);
   const [participante, setParticipante] = React.useState<ParticipanteLogado | null>(null);
+  const [avatarGenero, setAvatarGenero] = React.useState<GeneroAvatar | null>(null);
   const [treino, setTreino] = React.useState<TreinoDetalhadoDTO | null>(null);
   const [treinoLoading, setTreinoLoading] = React.useState(true);
   const [treinoError, setTreinoError] = React.useState<string | null>(null);
@@ -87,7 +93,7 @@ export default function FluxoTelas() {
                 const participanteLogado = await login(cpf, senha);
                 setLoginError(null);
                 setParticipante(participanteLogado);
-                setEtapa('intro');
+                setEtapa('escolhaAvatar');
               } catch (error) {
                 setLoginError(error instanceof Error ? error.message : 'Não foi possível entrar.');
               } finally {
@@ -117,6 +123,37 @@ export default function FluxoTelas() {
             }}
           />
         );
+      case 'escolhaAvatar':
+        return (
+          <TelaEscolhaAvatar
+            isSubmitting={isSavingAvatar}
+            errorMessage={avatarError}
+            initialGenero={avatarGenero}
+            onBackPress={() => setEtapa('login')}
+            onContinue={async (genero) => {
+              setAvatarGenero(genero);
+              if (participante) {
+                try {
+                  setIsSavingAvatar(true);
+                  await salvarAvatar(participante.participanteId, genero);
+                  setAvatarError(null);
+                  setEtapa('intro');
+                } catch (error) {
+                  setAvatarError(
+                    error instanceof Error
+                      ? error.message
+                      : 'Não foi possível salvar o avatar.',
+                  );
+                } finally {
+                  setIsSavingAvatar(false);
+                }
+              } else {
+                setAvatarError(null);
+                setEtapa('intro');
+              }
+            }}
+          />
+        );
       case 'intro':
         return (
           <TelaInstrucao
@@ -131,7 +168,7 @@ export default function FluxoTelas() {
             primaryLabel="Iniciar treino"
             primaryVariant="solid"
             activeDot={0}
-            onBackPress={() => setEtapa('login')}
+            onBackPress={() => setEtapa('escolhaAvatar')}
             onPrimaryPress={() => setEtapa('execucao')}
           />
         );

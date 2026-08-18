@@ -6,6 +6,7 @@ import type { TreinoDetalhadoDTO } from '../types/treino';
 // Contrato da API (implementado no repo exercicios-app-backend, src/routes/):
 //   login               -> POST  /login
 //   redefinirSenha      -> PATCH /senha
+//   salvarAvatar        -> PATCH /participantes/:participanteId/avatar
 //   buscarTreinoAtivo   -> GET   /treinos/:treinoId/execucao
 //   iniciarSessao       -> POST  /sessoes
 //   registrarProgresso  -> PATCH /sessoes/:sessaoId/progresso
@@ -77,6 +78,25 @@ export async function redefinirSenha(cpf: string, novaSenha: string): Promise<vo
 
   if (!response.ok) {
     throw new Error(payload.error || 'Não foi possível redefinir a senha');
+  }
+}
+
+export type GeneroAvatar = 'FEMININO' | 'MASCULINO';
+
+export async function salvarAvatar(
+  participanteId: number,
+  genero: GeneroAvatar,
+): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/participantes/${participanteId}/avatar`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ avatarGenero: genero }),
+  });
+
+  const payload = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(payload.error || 'Não foi possível salvar o avatar');
   }
 }
 
