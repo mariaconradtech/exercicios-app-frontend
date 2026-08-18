@@ -35,7 +35,9 @@ export default function TelaRedefinirSenha({
       return;
     }
 
-    if (cpf.replace(/\D/g, '').length !== 11) {
+    const cpfSomenteDigitos = cpf.replace(/\D/g, '');
+
+    if (cpfSomenteDigitos.length !== 11) {
       setErroValidacao('Informe um CPF válido');
       return;
     }
@@ -51,8 +53,7 @@ export default function TelaRedefinirSenha({
     }
 
     setErroValidacao(null);
-    void onSubmit(cpf, novaSenha);
-  };
+    void onSubmit(cpfSomenteDigitos, novaSenha);
 
   const mensagemErro = erroValidacao ?? errorMessage;
 
