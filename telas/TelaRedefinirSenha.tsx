@@ -92,7 +92,7 @@ export default function TelaRedefinirSenha({
               secureTextEntry={!novaSenhaVisivel}
             />
             <Pressable onPress={() => setNovaSenhaVisivel((atual) => !atual)} hitSlop={10}>
-              <IconeOlho visivel={!novaSenhaVisivel} />
+              <IconeOlho visivel={novaSenhaVisivel} />
             </Pressable>
           </View>
           <Text style={styles.hintText}>{REGRA_SENHA_MENSAGEM}</Text>
