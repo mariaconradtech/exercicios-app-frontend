@@ -152,9 +152,9 @@ export default function FluxoTelas() {
             )}
           </View>
         );
-      case 'feedback':
         return (
           <TelaFeedback
+            onBackPress={() => setEtapa('execucao')}
             onSubmit={handleFeedbackSubmit}
             isSubmitting={isSubmittingFeedback}
             errorMessage={feedbackError}
