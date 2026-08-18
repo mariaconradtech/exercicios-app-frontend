@@ -4,6 +4,8 @@ import { Platform } from 'react-native';
 import type { TreinoDetalhadoDTO } from '../types/treino';
 
 // Contrato da API (implementado no repo exercicios-app-backend, src/routes/):
+//   login               -> POST  /login
+//   redefinirSenha      -> PATCH /senha
 //   buscarTreinoAtivo   -> GET   /treinos/:treinoId/execucao
 //   iniciarSessao       -> POST  /sessoes
 //   registrarProgresso  -> PATCH /sessoes/:sessaoId/progresso
@@ -39,6 +41,42 @@ const API_BASE_URL = resolverApiBaseUrl();
 async function tratarResposta(response: Response, mensagemErro: string): Promise<void> {
   if (!response.ok) {
     throw new Error(`${mensagemErro} (status ${response.status})`);
+  }
+}
+
+export interface ParticipanteLogado {
+  participanteId: number;
+  nome: string;
+  cpf: string;
+}
+
+export async function login(cpf: string, senha: string): Promise<ParticipanteLogado> {
+  const response = await fetch(`${API_BASE_URL}/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ cpf, senha }),
+  });
+
+  const payload = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(payload.error || 'Não foi possível entrar');
+  }
+
+  return payload;
+}
+
+export async function redefinirSenha(cpf: string, novaSenha: string): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/senha`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ cpf, novaSenha }),
+  });
+
+  const payload = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(payload.error || 'Não foi possível redefinir a senha');
   }
 }
 

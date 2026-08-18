@@ -16,11 +16,17 @@ import type { RegistroExecucao, TreinoDetalhadoDTO } from '../types/treino';
 
 type TelaTreinoExecucaoProps = {
   treino: TreinoDetalhadoDTO;
+  participanteId: number;
   onFinish?: (registro: RegistroExecucao, sessaoId: number | null) => void;
   onBackPress?: () => void;
 };
 
-export default function TelaTreinoExecucao({ treino, onFinish, onBackPress }: TelaTreinoExecucaoProps) {
+export default function TelaTreinoExecucao({
+  treino,
+  participanteId,
+  onFinish,
+  onBackPress,
+}: TelaTreinoExecucaoProps) {
   useKeepAwake();
 
   const {
@@ -39,7 +45,7 @@ export default function TelaTreinoExecucao({ treino, onFinish, onBackPress }: Te
     pedirFinalizar,
     confirmarFinalizar,
     continuarTreino,
-  } = useTreinoExecucao(treino);
+  } = useTreinoExecucao(treino, participanteId);
 
   const jaNotificouRef = React.useRef(false);
   React.useEffect(() => {
