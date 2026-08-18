@@ -54,6 +54,7 @@ export default function TelaRedefinirSenha({
 
     setErroValidacao(null);
     void onSubmit(cpfSomenteDigitos, novaSenha);
+  };
 
   const mensagemErro = erroValidacao ?? errorMessage;
 
