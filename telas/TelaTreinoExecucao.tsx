@@ -16,7 +16,7 @@ import type { RegistroExecucao, TreinoDetalhadoDTO } from '../types/treino';
 
 type TelaTreinoExecucaoProps = {
   treino: TreinoDetalhadoDTO;
-  onFinish?: (registro: RegistroExecucao) => void;
+  onFinish?: (registro: RegistroExecucao, sessaoId: number) => void;
   onBackPress?: () => void;
 };
 
@@ -33,6 +33,7 @@ export default function TelaTreinoExecucao({ treino, onFinish, onBackPress }: Te
     remaining,
     registro,
     isConfirmModalOpen,
+    sessaoId,
     pausar,
     retomar,
     pedirFinalizar,
@@ -44,9 +45,9 @@ export default function TelaTreinoExecucao({ treino, onFinish, onBackPress }: Te
   React.useEffect(() => {
     if ((status === 'CONCLUIDA' || status === 'INTERROMPIDA') && !jaNotificouRef.current) {
       jaNotificouRef.current = true;
-      onFinish?.(registro);
+      onFinish?.(registro, sessaoId ?? 0);
     }
-  }, [status, registro, onFinish]);
+  }, [status, registro, onFinish, sessaoId]);
 
   const pausado = status === 'PAUSADO';
 

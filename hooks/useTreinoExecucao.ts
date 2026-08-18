@@ -24,6 +24,7 @@ interface UseTreinoExecucaoResult {
   remaining: number;
   registro: RegistroExecucao;
   isConfirmModalOpen: boolean;
+  sessaoId: number | null;
   pausar: () => void;
   retomar: () => void;
   pedirFinalizar: () => void;
@@ -214,6 +215,7 @@ export function useTreinoExecucao(treino: TreinoDetalhadoDTO): UseTreinoExecucao
     remaining: countdown.remaining,
     registro,
     isConfirmModalOpen,
+    sessaoId: sessaoIdRef.current,
     pausar,
     retomar,
     pedirFinalizar,
