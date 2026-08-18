@@ -28,7 +28,8 @@ export default function TelaLogin({
       return;
     }
 
-    void onSubmit(cpf, senha);
+    const cpfSomenteDigitos = cpf.replace(/\D/g, '');
+    void onSubmit(cpfSomenteDigitos, senha);
   };
 
   return (
