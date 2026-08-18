@@ -2,6 +2,7 @@ import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 
 import type { TreinoDetalhadoDTO } from '../types/treino';
+import type { EngajamentoDTO } from '../types/engajamento';
 
 // Contrato da API (implementado no repo exercicios-app-backend, src/routes/):
 //   buscarTreinoAtivo   -> GET   /treinos/:treinoId/execucao
@@ -35,6 +36,23 @@ export function resolverApiBaseUrl(): string {
 }
 
 const API_BASE_URL = resolverApiBaseUrl();
+const API_TIMEOUT_MS = 10000;
+
+async function fetchComTimeout(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
+
+  try {
+    return await fetch(input, { ...init, signal: controller.signal });
+  } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error('Tempo de conexão esgotado com o servidor. Verifique a URL da API.');
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
 
 async function tratarResposta(response: Response, mensagemErro: string): Promise<void> {
   if (!response.ok) {
@@ -43,7 +61,7 @@ async function tratarResposta(response: Response, mensagemErro: string): Promise
 }
 
 export async function buscarTreinoAtivo(treinoId: number): Promise<TreinoDetalhadoDTO> {
-  const response = await fetch(`${API_BASE_URL}/treinos/${treinoId}/execucao`);
+  const response = await fetchComTimeout(`${API_BASE_URL}/treinos/${treinoId}/execucao`);
   await tratarResposta(response, 'Não foi possível carregar o treino');
   return response.json();
 }
@@ -52,7 +70,7 @@ export async function iniciarSessao(
   treinoId: number,
   participanteId: number,
 ): Promise<{ sessaoId: number }> {
-  const response = await fetch(`${API_BASE_URL}/sessoes`, {
+  const response = await fetchComTimeout(`${API_BASE_URL}/sessoes`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ treinoId, participanteId }),
@@ -66,7 +84,7 @@ export async function registrarProgresso(
   exercicioId: number,
   serie: number,
 ): Promise<void> {
-  const response = await fetch(`${API_BASE_URL}/sessoes/${sessaoId}/progresso`, {
+  const response = await fetchComTimeout(`${API_BASE_URL}/sessoes/${sessaoId}/progresso`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ exercicioId, serie }),
@@ -85,7 +103,7 @@ export async function finalizarSessao(
   sessaoId: number,
   dados: FinalizarSessaoPayload,
 ): Promise<void> {
-  const response = await fetch(`${API_BASE_URL}/sessoes/${sessaoId}/finalizar`, {
+  const response = await fetchComTimeout(`${API_BASE_URL}/sessoes/${sessaoId}/finalizar`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(dados),
@@ -94,7 +112,7 @@ export async function finalizarSessao(
 }
 
 export async function enviarFeedback(sessaoId: number, rating: number): Promise<void> {
-  const response = await fetch(`${API_BASE_URL}/avaliacoes`, {
+  const response = await fetchComTimeout(`${API_BASE_URL}/avaliacoes`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -102,6 +120,17 @@ export async function enviarFeedback(sessaoId: number, rating: number): Promise<
       rating: Number(rating),
     }),
   });
-  
+
   await tratarResposta(response, 'Não foi possível enviar a avaliação');
+}
+
+export async function buscarEngajamento(participanteId: number): Promise<EngajamentoDTO> {
+  const response = await fetchComTimeout(`${API_BASE_URL}/engajamento?participanteId=${participanteId}`, {
+    headers: {
+      'x-participante-id': String(participanteId),
+    },
+  });
+
+  await tratarResposta(response, 'Não foi possível carregar o engajamento');
+  return response.json();
 }

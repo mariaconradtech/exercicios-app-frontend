@@ -2,25 +2,36 @@ import React from 'react';
 import { StatusBar } from 'expo-status-bar';
 import {
   Alert,
-  Platform,
   SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View,
   useWindowDimensions,
 } from 'react-native';
 
-import { buscarTreinoAtivo, enviarFeedback, resolverApiBaseUrl } from '../services/treinoService';
+import { buscarTreinoAtivo, enviarFeedback } from '../services/treinoService';
 import TelaFeedback from '../telas/TelaFeedback';
+import TelaEngajamento from '../telas/TelaEngajamento';
 import TelaInstrucao from '../telas/TelaInstrucao';
 import TelaTreinoExecucao from '../telas/TelaTreinoExecucao';
 import { treinoMock } from '../services/treinoMock';
 import type { TreinoDetalhadoDTO } from '../types/treino';
 
 type TrainingStep = 'intro' | 'execucao' | 'feedback';
+type Aba = 'inicio' | 'historico' | 'treino' | 'ranking' | 'perfil';
+
+const itensAba: Array<{ key: Aba; icon: string; label: string }> = [
+  { key: 'inicio', icon: '⌂', label: 'Início' },
+  { key: 'historico', icon: '□', label: 'Histórico' },
+  { key: 'treino', icon: '▣', label: 'Treino' },
+  { key: 'ranking', icon: '🏆', label: 'Ranking' },
+  { key: 'perfil', icon: '◌', label: 'Perfil' },
+];
 
 export default function FluxoTelas() {
+  const [abaAtiva, setAbaAtiva] = React.useState<Aba>('ranking');
   const [screenIndex, setScreenIndex] = React.useState<TrainingStep>('intro');
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [treino, setTreino] = React.useState<TreinoDetalhadoDTO | null>(null);
@@ -82,21 +93,17 @@ export default function FluxoTelas() {
     }
   };
 
-  return (
-    <SafeAreaView style={styles.appShell}>
-      <StatusBar style="dark" />
+  const renderTreino = () => (
+    <ScrollView contentContainerStyle={styles.scrollContent}>
+      <View style={styles.hero}>
+        <Text style={styles.heroLabel}>Treino guiado</Text>
+        <Text style={styles.heroTitle}>Execução orientada</Text>
+        <Text style={styles.heroDescription}>
+          Acompanhe cada etapa com instruções, progresso e feedback de esforço ao final da sessão.
+        </Text>
+      </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={styles.hero}>
-          <Text style={styles.heroLabel}>Instruções</Text>
-          <Text style={styles.heroTitle}>Sequência de treino</Text>
-          <Text style={styles.heroDescription}>
-            Uma interface limpa para orientar a pessoa durante o início do treino, com progresso,
-            áudio e chamada para a próxima ação.
-          </Text>
-        </View>
-
-        <View style={[styles.screensRow, isCompact && styles.screensColumn]}>
+      <View style={[styles.screensRow, isCompact && styles.screensColumn]}>
         {screenIndex === 'feedback' ? (
           <TelaFeedback
             onBackPress={handleBackPress}
@@ -107,8 +114,8 @@ export default function FluxoTelas() {
           <TelaTreinoExecucao
             treino={treinoParaRender}
             onBackPress={handleBackPress}
-            onFinish={(registro, sessaoId) => {
-              setSessaoId(sessaoId);
+            onFinish={(registro, novaSessaoId) => {
+              setSessaoId(novaSessaoId);
               setScreenIndex('feedback');
             }}
           />
@@ -129,8 +136,46 @@ export default function FluxoTelas() {
             onPrimaryPress={handlePrimaryPress}
           />
         )}
-        </View>
-      </ScrollView>
+      </View>
+    </ScrollView>
+  );
+
+  const renderPlaceholder = (titulo: string, descricao: string) => (
+    <View style={styles.placeholder}>
+      <Text style={styles.placeholderTitle}>{titulo}</Text>
+      <Text style={styles.placeholderText}>{descricao}</Text>
+    </View>
+  );
+
+  return (
+    <SafeAreaView style={styles.appShell}>
+      <StatusBar style="dark" />
+
+      <View style={styles.mainArea}>
+        {abaAtiva === 'ranking' && <TelaEngajamento participanteId={1} />}
+        {abaAtiva === 'treino' && renderTreino()}
+        {abaAtiva === 'inicio' &&
+          renderPlaceholder('Início', 'Resumo geral em construção. Use a aba Ranking para visualizar o engajamento.')}
+        {abaAtiva === 'historico' && renderPlaceholder('Histórico', 'Histórico de sessões em construção.')}
+        {abaAtiva === 'perfil' && renderPlaceholder('Perfil', 'Informações de perfil em construção.')}
+      </View>
+
+      <View style={styles.tabBar}>
+        {itensAba.map((item) => {
+          const ativo = item.key === abaAtiva;
+          return (
+            <TouchableOpacity
+              key={item.key}
+              style={styles.tabButton}
+              onPress={() => setAbaAtiva(item.key)}
+              activeOpacity={0.85}
+            >
+              <Text style={[styles.tabIcon, ativo && styles.tabIconActive]}>{item.icon}</Text>
+              <Text style={[styles.tabLabel, ativo && styles.tabLabelActive]}>{item.label}</Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
     </SafeAreaView>
   );
 }
@@ -138,7 +183,10 @@ export default function FluxoTelas() {
 const styles = StyleSheet.create({
   appShell: {
     flex: 1,
-    backgroundColor: '#eef1f7',
+    backgroundColor: '#f8fafc',
+  },
+  mainArea: {
+    flex: 1,
   },
   scrollContent: {
     flexGrow: 1,
@@ -153,22 +201,22 @@ const styles = StyleSheet.create({
   },
   heroLabel: {
     fontSize: 16,
-    color: '#8a90a0',
+    color: '#5f6880',
     letterSpacing: 0.4,
     marginBottom: 4,
   },
   heroTitle: {
-    fontSize: 34,
-    lineHeight: 40,
+    fontSize: 30,
+    lineHeight: 36,
     fontWeight: '800',
-    color: '#152033',
+    color: '#1f2735',
     marginBottom: 8,
   },
   heroDescription: {
     maxWidth: 620,
     fontSize: 15,
     lineHeight: 22,
-    color: '#556070',
+    color: '#59647d',
   },
   screensRow: {
     width: '100%',
@@ -182,5 +230,55 @@ const styles = StyleSheet.create({
   screensColumn: {
     flexDirection: 'column',
     alignItems: 'center',
+  },
+  placeholder: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 30,
+  },
+  placeholderTitle: {
+    fontSize: 28,
+    lineHeight: 33,
+    color: '#20293a',
+    fontWeight: '800',
+    marginBottom: 8,
+  },
+  placeholderText: {
+    fontSize: 16,
+    lineHeight: 23,
+    color: '#5a647b',
+    textAlign: 'center',
+  },
+  tabBar: {
+    borderTopWidth: 1,
+    borderColor: '#e7ebf4',
+    backgroundColor: '#ffffff',
+    paddingTop: 8,
+    paddingBottom: 12,
+    paddingHorizontal: 6,
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+  },
+  tabButton: {
+    alignItems: 'center',
+    minWidth: 62,
+  },
+  tabIcon: {
+    fontSize: 20,
+    color: '#7d869c',
+    marginBottom: 2,
+  },
+  tabIconActive: {
+    color: '#3b5cff',
+  },
+  tabLabel: {
+    fontSize: 12,
+    color: '#707a90',
+    fontWeight: '500',
+  },
+  tabLabelActive: {
+    color: '#3b5cff',
+    fontWeight: '700',
   },
 });

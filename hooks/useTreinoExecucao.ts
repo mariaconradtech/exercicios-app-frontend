@@ -23,6 +23,7 @@ interface UseTreinoExecucaoResult {
   proximoExercicio: TreinoDetalhadoDTO['itens'][number] | null;
   remaining: number;
   registro: RegistroExecucao;
+  sessaoId: number | null;
   isConfirmModalOpen: boolean;
   pausar: () => void;
   retomar: () => void;
