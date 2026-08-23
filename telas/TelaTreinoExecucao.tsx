@@ -103,7 +103,10 @@ export default function TelaTreinoExecucao({
         />
         <ExercicioMidia videoUrl={exercicioAtual.exercicio.videoUrl} />
         <View style={styles.timerWrap}>
-          <TimerExecucao segundosRestantes={remaining} />
+          <TimerExecucao
+            segundosRestantes={remaining}
+            duracaoTotalSegundos={exercicioAtual.duracaoEstimadaSegundos}
+          />
         </View>
         <StatsRow
           serieAtual={serieAtual}

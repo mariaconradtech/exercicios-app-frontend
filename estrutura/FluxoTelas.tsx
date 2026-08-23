@@ -1,6 +1,7 @@
 import React from 'react';
 import { StatusBar } from 'expo-status-bar';
 import {
+  Platform,
   SafeAreaView,
   ScrollView,
   StyleSheet,
@@ -55,12 +56,14 @@ export default function FluxoTelas() {
   const [feedbackError, setFeedbackError] = React.useState<string | null>(null);
   const [participante, setParticipante] = React.useState<ParticipanteLogado | null>(null);
   const [avatarGenero, setAvatarGenero] = React.useState<GeneroAvatar | null>(null);
+  const [nomeAvatar, setNomeAvatar] = React.useState<string>('');
   const [treino, setTreino] = React.useState<TreinoDetalhadoDTO | null>(null);
   const [treinoLoading, setTreinoLoading] = React.useState(true);
   const [treinoError, setTreinoError] = React.useState<string | null>(null);
   const [sessaoId, setSessaoId] = React.useState<number | null>(null);
   const { width } = useWindowDimensions();
   const isCompact = width < 900;
+  const isWeb = Platform.OS === 'web';
 
   React.useEffect(() => {
     buscarTreinoAtivo(1)
@@ -115,13 +118,15 @@ export default function FluxoTelas() {
 
   const renderTreino = () => (
     <ScrollView contentContainerStyle={styles.scrollContent}>
-      <View style={styles.hero}>
-        <Text style={styles.heroLabel}>Treino guiado</Text>
-        <Text style={styles.heroTitle}>Execução orientada</Text>
-        <Text style={styles.heroDescription}>
-          Acompanhe cada etapa com instruções, progresso e feedback de esforço ao final da sessão.
-        </Text>
-      </View>
+      {!isWeb && (
+        <View style={styles.hero}>
+          <Text style={styles.heroLabel}>Treino guiado</Text>
+          <Text style={styles.heroTitle}>Execução orientada</Text>
+          <Text style={styles.heroDescription}>
+            Acompanhe cada etapa com instruções, progresso e feedback de esforço ao final da sessão.
+          </Text>
+        </View>
+      )}
 
       <View style={[styles.screensRow, isCompact && styles.screensColumn]}>
         {screenIndex === 'feedback' ? (
@@ -239,13 +244,15 @@ export default function FluxoTelas() {
             isSubmitting={isSavingAvatar}
             errorMessage={avatarError}
             initialGenero={avatarGenero}
+            initialNomeAvatar={nomeAvatar}
             onBackPress={() => setEtapa('login')}
-            onContinue={async (genero) => {
+            onContinue={async (genero, nome) => {
               setAvatarGenero(genero);
+              setNomeAvatar(nome);
               if (participante) {
                 try {
                   setIsSavingAvatar(true);
-                  await salvarAvatar(participante.participanteId, genero);
+                  await salvarAvatar(participante.participanteId, genero, nome);
                   setAvatarError(null);
                   setEtapa('app');
                 } catch (error) {
@@ -281,7 +288,7 @@ export default function FluxoTelas() {
         {abaAtiva === 'perfil' && renderPlaceholder('Perfil', 'Informações de perfil em construção.')}
       </View>
 
-      <View style={styles.tabBar}>
+      <View style={[styles.tabBar, isWeb && styles.tabBarWeb]}>
         {itensAba.map((item) => {
           const ativo = item.key === abaAtiva;
           return (
@@ -403,6 +410,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
     flexDirection: 'row',
     justifyContent: 'space-around',
+  },
+  tabBarWeb: {
+    width: '100%',
+    maxWidth: 390,
+    alignSelf: 'center',
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
   },
   tabButton: {
     alignItems: 'center',
