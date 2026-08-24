@@ -3,124 +3,152 @@ import { PanResponder, Pressable, StyleSheet, Text, View } from 'react-native';
 
 type TelaInstrucaoProps = {
   emoji: string;
-  message: string | string[];
   primaryLabel: string;
   primaryVariant?: 'outline' | 'solid';
-  activeDot: number;
+  materiais: string[];
   onBackPress?: () => void;
   onPrimaryPress?: () => void;
 };
 
-const h = React.createElement;
+const MENSAGEM_CARD_1_PARTE_1 =
+  'Hora do treino! Confira os materiais que você vai precisar no próximo card. Assim que estiver com tudo em mãos, clique em ';
+const MENSAGEM_CARD_1_PARTE_2 = ' para começar.';
+const TOTAL_CARDS = 2;
 
 export default function TelaInstrucao({
   emoji,
-  message,
   primaryLabel,
-  primaryVariant = 'outline',
-  activeDot,
+  primaryVariant = 'solid',
+  materiais,
   onBackPress,
   onPrimaryPress,
 }: TelaInstrucaoProps) {
-  const messageLines = React.useMemo(() => {
-    if (Array.isArray(message)) {
-      return message;
+  const [cardAtivo, setCardAtivo] = React.useState<number>(0);
+
+  const irParaProximoCard = React.useCallback(() => {
+    setCardAtivo((atual) => Math.min(atual + 1, TOTAL_CARDS - 1));
+  }, []);
+
+  const irParaCardAnterior = React.useCallback(() => {
+    setCardAtivo((atual) => Math.max(atual - 1, 0));
+  }, []);
+
+  const handleBack = () => {
+    if (cardAtivo > 0) {
+      irParaCardAnterior();
+      return;
     }
-    return message.split('\n').map((line) => line.trim()).filter(Boolean);
-  }, [message]);
+    onBackPress?.();
+  };
+
+  const handlePrimary = () => {
+    if (cardAtivo < TOTAL_CARDS - 1) {
+      irParaProximoCard();
+      return;
+    }
+    onPrimaryPress?.();
+  };
+
   const panResponder = React.useMemo(
     () =>
       PanResponder.create({
         onMoveShouldSetPanResponder: (_, gestureState) =>
           Math.abs(gestureState.dx) > 8 && Math.abs(gestureState.dx) > Math.abs(gestureState.dy),
         onPanResponderRelease: (_, gestureState) => {
-          if (gestureState.dx > 50 && onBackPress) {
-            onBackPress();
+          if (gestureState.dx > 50) {
+            handleBack();
             return;
           }
-          if (gestureState.dx < -50 && onPrimaryPress) {
-            onPrimaryPress();
+          if (gestureState.dx < -50) {
+            handlePrimary();
           }
         },
       }),
-    [onBackPress, onPrimaryPress],
+    [cardAtivo, onBackPress, onPrimaryPress],
   );
 
-  const dots = [0, 1].map((dot) =>
-    h(View, {
-      key: dot,
-      style: [styles.dot, dot === activeDot && styles.dotActive],
-    }),
+  const noUltimoCard = cardAtivo === TOTAL_CARDS - 1;
+  const labelBotao = noUltimoCard ? primaryLabel : 'Próximo';
+  const varianteBotao = noUltimoCard ? primaryVariant : 'outline';
+  const iconeBotao = noUltimoCard ? (varianteBotao === 'solid' ? '▶' : '⏭') : '→';
+  const materiaisUnicos = React.useMemo(
+    () => Array.from(new Set(materiais.map((m) => m.trim()).filter(Boolean))),
+    [materiais],
   );
 
-  return h(
-    View,
-    { ...panResponder.panHandlers, style: styles.phoneFrame },
-    h(
-      View,
-      { style: styles.phoneHeader },
-      h(
-        View,
-        { style: styles.statusRow },
-        h(
-          Pressable,
-          {
-            onPress: onBackPress,
-            style: styles.backButton,
-            hitSlop: 10,
-          },
-          h(Text, { style: styles.backArrow }, '←'),
-        ),
-        h(View, { style: styles.statusPill }),
-      ),
-      h(Text, { style: styles.screenTitle }, 'TREINO 1 - NÍVEL 1 - INICIANTE'),
-      h(Text, { style: styles.screenSubtitle }, '6 exercícios - ~45 min'),
-    ),
-    h(
-      View,
-      { style: styles.phoneBody },
-      h(
-        View,
-        { style: styles.avatarWrap },
-        h(
-          View,
-          { style: styles.avatarCircle },
-          h(Text, { style: styles.avatarEmoji }, emoji),
-        ),
-      ),
-      h(
-        View,
-        { style: styles.messageCard },
-        ...messageLines.map((line, index) =>
-          h(Text, { key: index, style: styles.messageText }, line),
-        ),
-      ),
-      h(View, { style: styles.dotsRow }, ...dots),
-      h(
-        Pressable,
-        {
-          style: [
+  return (
+    <View {...panResponder.panHandlers} style={styles.phoneFrame}>
+      <View style={styles.phoneHeader}>
+        <View style={styles.statusRow}>
+          <Pressable onPress={handleBack} style={styles.backButton} hitSlop={10}>
+            <Text style={styles.backArrow}>←</Text>
+          </Pressable>
+          <View style={styles.statusPill} />
+        </View>
+        <Text style={styles.screenTitle}>TREINO 1 - NÍVEL 1 - INICIANTE</Text>
+        <Text style={styles.screenSubtitle}>6 exercícios - ~45 min</Text>
+      </View>
+
+      <View style={styles.phoneBody}>
+        <View style={styles.avatarWrap}>
+          <View style={styles.avatarCircle}>
+            <Text style={styles.avatarEmoji}>{emoji}</Text>
+          </View>
+        </View>
+
+        <View style={styles.messageCard}>
+          {cardAtivo === 0 ? (
+            <Text style={styles.messageText}>
+              {MENSAGEM_CARD_1_PARTE_1}
+              <Text style={styles.messageTextBold}>Iniciar</Text>
+              {MENSAGEM_CARD_1_PARTE_2}
+            </Text>
+          ) : (
+            <View style={styles.materiaisWrap}>
+              <Text style={styles.materiaisTitulo}>Materiais necessários</Text>
+              {materiaisUnicos.length === 0 ? (
+                <Text style={styles.messageText}>Nenhum material específico para este treino.</Text>
+              ) : (
+                materiaisUnicos.map((material, index) => (
+                  <View key={`${material}-${index}`} style={styles.materialItem}>
+                    <Text style={styles.materialBullet}>•</Text>
+                    <Text style={styles.materialTexto}>{material}</Text>
+                  </View>
+                ))
+              )}
+            </View>
+          )}
+        </View>
+
+        <View style={styles.dotsRow}>
+          {Array.from({ length: TOTAL_CARDS }).map((_, index) => (
+            <View
+              key={index}
+              style={[styles.dot, index === cardAtivo && styles.dotActive]}
+            />
+          ))}
+        </View>
+
+        <Pressable
+          style={[
             styles.primaryButton,
-            primaryVariant === 'solid'
-              ? styles.primaryButtonSolid
-              : styles.primaryButtonOutline,
-          ],
-          onPress: onPrimaryPress,
-        },
-        h(
-          Text,
-          {
-            style: [
+            varianteBotao === 'solid' ? styles.primaryButtonSolid : styles.primaryButtonOutline,
+          ]}
+          onPress={handlePrimary}
+        >
+          <Text
+            style={[
               styles.primaryButtonText,
-              primaryVariant === 'solid'
+              varianteBotao === 'solid'
                 ? styles.primaryButtonTextSolid
                 : styles.primaryButtonTextOutline,
-            ],
-          },
-          `${primaryVariant === 'solid' ? '▶' : '⏭'}  ${primaryLabel}`,
-        ),
-      ),
-    ),
+            ]}
+          >
+            {`${iconeBotao}  ${labelBotao}`}
+          </Text>
+        </Pressable>
+      </View>
+    </View>
   );
 }
 
@@ -128,7 +156,8 @@ const styles = StyleSheet.create({
   phoneFrame: {
     width: '100%',
     maxWidth: 390,
-    minHeight: 720,
+    flex: 1,
+    maxHeight: 720,
     borderRadius: 22,
     backgroundColor: '#ffffff',
     overflow: 'hidden',
@@ -213,14 +242,13 @@ const styles = StyleSheet.create({
   },
   messageCard: {
     width: '100%',
-    minHeight: 80,
+    minHeight: 120,
     borderRadius: 14,
     borderWidth: 1,
     borderColor: '#e4e8f0',
     backgroundColor: '#ffffff',
     paddingHorizontal: 18,
     paddingVertical: 18,
-    alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 20,
   },
@@ -229,6 +257,41 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 22,
     textAlign: 'center',
+    fontWeight: '500',
+  },
+  messageTextBold: {
+    fontWeight: '800',
+    color: '#1d2433',
+  },
+  materiaisWrap: {
+    width: '100%',
+  },
+  materiaisTitulo: {
+    fontSize: 18,
+    lineHeight: 24,
+    fontWeight: '800',
+    color: '#1d2433',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  materialItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 8,
+    paddingHorizontal: 4,
+  },
+  materialBullet: {
+    fontSize: 18,
+    lineHeight: 22,
+    color: '#4467f2',
+    marginRight: 8,
+    fontWeight: '800',
+  },
+  materialTexto: {
+    flex: 1,
+    fontSize: 15,
+    lineHeight: 22,
+    color: '#4a5260',
     fontWeight: '500',
   },
   dotsRow: {

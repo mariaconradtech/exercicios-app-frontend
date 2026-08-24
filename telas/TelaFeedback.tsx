@@ -81,7 +81,11 @@ export default function TelaFeedback({
                     ) : null}
                   </View>
 
-                  <Pressable onPress={() => handleSelectRating(nota)} hitSlop={8}>
+                  <Pressable
+                    onPress={() => handleSelectRating(nota)}
+                    hitSlop={8}
+                    style={styles.notaPressable}
+                  >
                     <Text style={[styles.notaTexto, isSelected && styles.notaTextoAtiva]}>{nota}</Text>
                   </Pressable>
                 </View>
@@ -120,7 +124,8 @@ const styles = StyleSheet.create({
   feedbackCard: {
     width: '100%',
     maxWidth: 390,
-    minHeight: 720,
+    flex: 1,
+    maxHeight: 720,
     borderRadius: 22,
     backgroundColor: '#ffffff',
     overflow: 'hidden',
@@ -206,13 +211,14 @@ const styles = StyleSheet.create({
   linhaDiagonal: {
     position: 'absolute',
     left: '50%',
-    bottom: 200,
+    bottom: 170,
     width: 420,
     marginLeft: -210,
     height: 4,
     borderRadius: 99,
     backgroundColor: '#1d2433',
     transform: [{ rotate: '-46deg' }],
+    zIndex: 0,
   },
   degrausRow: {
     flexDirection: 'row',
@@ -220,16 +226,25 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
     width: '100%',
     paddingHorizontal: 24,
+    zIndex: 1,
   },
   degrau: {
     alignItems: 'center',
     width: 28,
+    zIndex: 1,
   },
   avatarSlot: {
     height: 100,
     justifyContent: 'flex-end',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 12,
+    zIndex: 1,
+  },
+  notaPressable: {
+    marginTop: 8,
+    paddingVertical: 4,
+    paddingHorizontal: 4,
+    zIndex: 1,
   },
   notaTexto: {
     fontSize: 20,

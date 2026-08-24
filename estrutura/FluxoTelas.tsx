@@ -3,7 +3,6 @@ import { StatusBar } from 'expo-status-bar';
 import {
   Platform,
   SafeAreaView,
-  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -75,10 +74,20 @@ export default function FluxoTelas() {
   }, []);
 
   const treinoParaRender = treino ?? treinoMock;
-  const primeiraInstrucao = treinoParaRender.itens[0]?.exercicio?.instrucao ?? [];
-  const mensagemInstrucao = Array.isArray(primeiraInstrucao)
-    ? primeiraInstrucao.join('\n')
-    : String(primeiraInstrucao);
+  const materiaisTreino = React.useMemo(() => {
+    const conjunto = new Set<string>();
+    for (const item of treinoParaRender.itens) {
+      const instrucao = item.exercicio?.instrucao ?? [];
+      const linhas = Array.isArray(instrucao) ? instrucao : [String(instrucao)];
+      for (const linha of linhas) {
+        const texto = linha.trim();
+        if (texto) {
+          conjunto.add(texto);
+        }
+      }
+    }
+    return Array.from(conjunto);
+  }, [treinoParaRender]);
 
   const handleBackPress = () => {
     if (screenIndex === 'feedback') {
@@ -117,7 +126,7 @@ export default function FluxoTelas() {
   };
 
   const renderTreino = () => (
-    <ScrollView contentContainerStyle={styles.scrollContent}>
+    <View style={styles.trainingArea}>
       {!isWeb && (
         <View style={styles.hero}>
           <Text style={styles.heroLabel}>Treino guiado</Text>
@@ -153,23 +162,16 @@ export default function FluxoTelas() {
           </View>
         ) : (
           <TelaInstrucao
-            emoji="🤖"
-            message={
-              treinoLoading
-                ? 'Carregando instruções do treino...'
-                : treinoError
-                ? `Erro: ${treinoError}`
-                : mensagemInstrucao || 'Olá! Vamos começar o treino de hoje.'
-            }
-            primaryLabel="Iniciar treino"
+            emoji={avatarGenero === 'MASCULINO' ? '🏋️' : avatarGenero === 'FEMININO' ? '🧘‍♀️' : '🤖'}
+            materiais={materiaisTreino}
+            primaryLabel={treinoLoading ? 'Carregando...' : 'Iniciar treino'}
             primaryVariant="solid"
-            activeDot={0}
             onBackPress={handleBackPress}
             onPrimaryPress={() => setScreenIndex('execucao')}
           />
         )}
       </View>
-    </ScrollView>
+    </View>
   );
 
   const renderPlaceholder = (titulo: string, descricao: string) => (
@@ -183,7 +185,7 @@ export default function FluxoTelas() {
     return (
       <SafeAreaView style={styles.appShell}>
         <StatusBar style="dark" />
-        <ScrollView contentContainerStyle={styles.scrollContent}>
+        <View style={styles.modalScreen}>
           <TelaLogin
             isSubmitting={isLoggingIn}
             errorMessage={loginError}
@@ -202,7 +204,7 @@ export default function FluxoTelas() {
               }
             }}
           />
-        </ScrollView>
+        </View>
       </SafeAreaView>
     );
   }
@@ -211,10 +213,11 @@ export default function FluxoTelas() {
     return (
       <SafeAreaView style={styles.appShell}>
         <StatusBar style="dark" />
-        <ScrollView contentContainerStyle={styles.scrollContent}>
+        <View style={styles.modalScreen}>
           <TelaRedefinirSenha
             isSubmitting={isResettingPassword}
             errorMessage={redefinirSenhaError}
+            onBackPress={() => setEtapa('login')}
             onSubmit={async (cpf, novaSenha) => {
               try {
                 setIsResettingPassword(true);
@@ -230,7 +233,7 @@ export default function FluxoTelas() {
               }
             }}
           />
-        </ScrollView>
+        </View>
       </SafeAreaView>
     );
   }
@@ -239,7 +242,7 @@ export default function FluxoTelas() {
     return (
       <SafeAreaView style={styles.appShell}>
         <StatusBar style="dark" />
-        <ScrollView contentContainerStyle={styles.scrollContent}>
+        <View style={styles.modalScreen}>
           <TelaEscolhaAvatar
             isSubmitting={isSavingAvatar}
             errorMessage={avatarError}
@@ -270,7 +273,7 @@ export default function FluxoTelas() {
               }
             }}
           />
-        </ScrollView>
+        </View>
       </SafeAreaView>
     );
   }
@@ -315,6 +318,20 @@ const styles = StyleSheet.create({
   },
   mainArea: {
     flex: 1,
+  },
+  modalScreen: {
+    flex: 1,
+    paddingHorizontal: 20,
+    paddingVertical: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  trainingArea: {
+    flex: 1,
+    paddingHorizontal: 20,
+    paddingVertical: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   scrollContent: {
     flexGrow: 1,
