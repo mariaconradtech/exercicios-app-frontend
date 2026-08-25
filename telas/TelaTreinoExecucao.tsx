@@ -133,7 +133,7 @@ const styles = StyleSheet.create({
   },
   timerWrap: {
     justifyContent: 'center',
-    paddingVertical: 12,
-    minHeight: 50,
+    paddingVertical: 20,
+    minHeight: 60,
   },
 });

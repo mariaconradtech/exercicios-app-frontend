@@ -24,7 +24,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: cores.borda,
     backgroundColor: cores.cartao,
-    paddingVertical: 8,
+    paddingVertical: 12,
     alignItems: 'center',
   },
   label: {

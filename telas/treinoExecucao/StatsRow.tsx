@@ -25,6 +25,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 10,
     marginHorizontal: 20,
-    marginTop: 12,
+    marginTop: 20,
   },
 });

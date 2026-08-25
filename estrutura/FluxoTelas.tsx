@@ -152,6 +152,11 @@ export default function FluxoTelas() {
             onSubmit={handleFeedbackSubmit}
             isSubmitting={isSubmittingFeedback}
             errorMessage={feedbackError}
+            nomeTreino={treinoParaRender.nome}
+            fase={treinoParaRender.fase}
+            nivel={treinoParaRender.nivel}
+            quantidadeExercicios={treinoParaRender.itens.length}
+            duracaoTotalSegundos={duracaoTotalTreinoSegundos}
           />
         ) : screenIndex === 'execucao' ? (
           <View style={styles.phoneBoundary}>

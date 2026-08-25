@@ -1,11 +1,18 @@
 import React from 'react';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 
+import type { FaseTreino } from '../types/treino';
+
 type TelaFeedbackProps = {
   onSubmit?: (rating: number) => void | Promise<void>;
   onBackPress?: () => void;
   isSubmitting?: boolean;
   errorMessage?: string | null;
+  nomeTreino: string;
+  fase?: FaseTreino;
+  nivel?: number;
+  quantidadeExercicios: number;
+  duracaoTotalSegundos: number;
 };
 
 const legendaPorNota: Record<number, string> = {
@@ -34,17 +41,56 @@ const tamanhoAvatarPorNota: Record<number, { width: number; height: number }> = 
 const notas = Array.from({ length: 11 }, (_, i) => i);
 const DEGRAU_PX = 26;
 
+const LABEL_FASE: Record<FaseTreino, string> = {
+  INICIANTE: 'INICIANTE',
+  INTERMEDIARIO: 'INTERMEDIÁRIO',
+  AVANCADO: 'AVANÇADO',
+};
+
+function formatarDuracao(segundos: number): string {
+  if (!Number.isFinite(segundos) || segundos <= 0) {
+    return '~';
+  }
+  const minutos = Math.round(segundos / 60);
+  if (minutos < 60) {
+    return `~${minutos} min`;
+  }
+  const horas = Math.floor(minutos / 60);
+  const restoMin = minutos % 60;
+  return restoMin === 0 ? `~${horas}h` : `~${horas}h${restoMin}min`;
+}
+
 export default function TelaFeedback({
   onSubmit,
   onBackPress,
   isSubmitting,
   errorMessage,
+  nomeTreino,
+  fase,
+  nivel,
+  quantidadeExercicios,
+  duracaoTotalSegundos,
 }: TelaFeedbackProps) {
   const [selectedRating, setSelectedRating] = React.useState(0);
 
   const handleSelectRating = (rating: number) => {
     setSelectedRating(rating);
   };
+
+  const tituloHeader = React.useMemo(() => {
+    const partes: string[] = [nomeTreino.trim() || 'Treino'];
+    if (typeof nivel === 'number') {
+      partes.push(`NÍVEL ${nivel}`);
+    }
+    if (fase) {
+      partes.push(LABEL_FASE[fase]);
+    }
+    return partes.join(' - ').toUpperCase();
+  }, [nomeTreino, nivel, fase]);
+
+  const subtituloHeader = `${quantidadeExercicios} ${
+    quantidadeExercicios === 1 ? 'exercício' : 'exercícios'
+  } - ${formatarDuracao(duracaoTotalSegundos)}`;
 
   return (
     <View style={styles.feedbackCard}>
@@ -56,8 +102,10 @@ export default function TelaFeedback({
           <View style={styles.statusPill} />
         </View>
 
-        <Text style={styles.screenTitle}>TREINO 1 - NÍVEL 1 - INICIANTE</Text>
-        <Text style={styles.screenSubtitle}>6 exercícios - ~45 min</Text>
+        <Text style={styles.screenTitle} numberOfLines={2}>
+          {tituloHeader}
+        </Text>
+        <Text style={styles.screenSubtitle}>{subtituloHeader}</Text>
       </View>
 
       <View style={styles.content}>
@@ -139,46 +187,46 @@ const styles = StyleSheet.create({
   },
   phoneHeader: {
     backgroundColor: '#4467f2',
-    paddingHorizontal: 14,
-    paddingTop: 12,
-    paddingBottom: 18,
-    borderBottomLeftRadius: 16,
-    borderBottomRightRadius: 16,
+    paddingHorizontal: 22,
+    paddingTop: 24,
+    paddingBottom: 24,
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
   },
   statusRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 10,
+    marginBottom: 14,
   },
   backButton: {
     paddingRight: 8,
-    paddingVertical: 2,
+    paddingVertical: 4,
   },
   backArrow: {
     color: '#ffffff',
-    fontSize: 20,
-    lineHeight: 20,
+    fontSize: 28,
+    lineHeight: 30,
     fontWeight: '700',
   },
   statusPill: {
-    width: 24,
-    height: 4,
+    width: 40,
+    height: 6,
     borderRadius: 99,
     backgroundColor: 'rgba(255,255,255,0.72)',
   },
   screenTitle: {
     color: '#ffffff',
-    fontSize: 14,
-    lineHeight: 18,
+    fontSize: 18,
+    lineHeight: 24,
     fontWeight: '800',
-    letterSpacing: 0.3,
+    letterSpacing: 0.4,
   },
   screenSubtitle: {
-    color: 'rgba(255,255,255,0.85)',
-    marginTop: 3,
-    fontSize: 10,
-    lineHeight: 14,
+    color: 'rgba(255,255,255,0.9)',
+    marginTop: 6,
+    fontSize: 14,
+    lineHeight: 18,
     fontWeight: '500',
   },
   content: {
