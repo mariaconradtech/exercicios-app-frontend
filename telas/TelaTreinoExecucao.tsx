@@ -1,7 +1,7 @@
 import React from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { useKeepAwake } from 'expo-keep-awake';
-import { SafeAreaView, ScrollView, StyleSheet, View } from 'react-native';
+import { SafeAreaView, StyleSheet, View } from 'react-native';
 
 import AcoesTreino from './treinoExecucao/AcoesTreino';
 import { cores } from './treinoExecucao/cores';
@@ -94,12 +94,12 @@ export default function TelaTreinoExecucao({
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar style="dark" />
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <View style={styles.scrollContent}>
         <ExercicioHeader
           indice={exercicioIndex + 1}
           total={treino.itens.length}
           nome={exercicioAtual.exercicio.nome}
-          onBackPress={onBackPress}
+          onBackPress={pedirFinalizar}
         />
         <ExercicioMidia videoUrl={exercicioAtual.exercicio.videoUrl} />
         <View style={styles.timerWrap}>
@@ -115,7 +115,7 @@ export default function TelaTreinoExecucao({
           descansoSegundos={exercicioAtual.descansoSegundos}
         />
         <AcoesTreino pausado={pausado} onTogglePause={pausado ? retomar : pausar} onFinalizar={pedirFinalizar} />
-      </ScrollView>
+      </View>
 
       <ModalFinalizarTreino visivel={isConfirmModalOpen} onContinuar={continuarTreino} onEncerrar={confirmarFinalizar} />
     </SafeAreaView>
@@ -128,12 +128,12 @@ const styles = StyleSheet.create({
     backgroundColor: cores.fundo,
   },
   scrollContent: {
-    flexGrow: 1,
-    paddingBottom: 12,
+    flex: 1,
+    paddingBottom: 8,
   },
   timerWrap: {
-    flex: 1,
     justifyContent: 'center',
-    minHeight: 80,
+    paddingVertical: 12,
+    minHeight: 50,
   },
 });

@@ -122,7 +122,7 @@ export default function ExercicioMidia({ videoUrl }: ExercicioMidiaProps) {
 const styles = StyleSheet.create({
   container: {
     marginHorizontal: 20,
-    height: 360,
+    height: 220,
     borderRadius: 18,
     backgroundColor: '#eceef2',
     overflow: 'hidden',

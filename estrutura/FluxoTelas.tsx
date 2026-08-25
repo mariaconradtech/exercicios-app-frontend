@@ -298,7 +298,18 @@ export default function FluxoTelas() {
       <StatusBar style="dark" />
 
       <View style={styles.mainArea}>
-        {abaAtiva === 'ranking' && <TelaEngajamento participanteId={participante?.participanteId ?? 1} />}
+        {abaAtiva === 'ranking' && (
+          <View style={styles.rankingArea}>
+            {participante ? (
+              <TelaEngajamento participanteId={participante.participanteId} />
+            ) : (
+              renderPlaceholder(
+                'Ranking',
+                'Faça login para visualizar seu ranking e engajamento.',
+              )
+            )}
+          </View>
+        )}
         {abaAtiva === 'treino' && renderTreino()}
         {abaAtiva === 'inicio' &&
           renderPlaceholder('Início', 'Resumo geral em construção. Use a aba Ranking para visualizar o engajamento.')}
@@ -335,6 +346,12 @@ const styles = StyleSheet.create({
   },
   mainArea: {
     flex: 1,
+  },
+  rankingArea: {
+    flex: 1,
+    width: '100%',
+    maxWidth: 480,
+    alignSelf: 'center',
   },
   modalScreen: {
     flex: 1,

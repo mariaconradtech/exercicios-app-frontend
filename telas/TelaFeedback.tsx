@@ -32,7 +32,7 @@ const tamanhoAvatarPorNota: Record<number, { width: number; height: number }> = 
 };
 
 const notas = Array.from({ length: 11 }, (_, i) => i);
-const DEGRAU_PX = 30;
+const DEGRAU_PX = 26;
 
 export default function TelaFeedback({
   onSubmit,
@@ -124,8 +124,7 @@ const styles = StyleSheet.create({
   feedbackCard: {
     width: '100%',
     maxWidth: 390,
-    flex: 1,
-    maxHeight: 720,
+    height: 720,
     borderRadius: 22,
     backgroundColor: '#ffffff',
     overflow: 'hidden',
@@ -205,19 +204,20 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'flex-end',
     position: 'relative',
-    marginTop: 32,
-    marginBottom: 24,
+    marginTop: 20,
+    marginBottom: 20,
+    paddingBottom: 40,
   },
   linhaDiagonal: {
     position: 'absolute',
     left: '50%',
-    bottom: 170,
-    width: 420,
-    marginLeft: -210,
+    bottom: 130,
+    width: 360,
+    marginLeft: -180,
     height: 4,
     borderRadius: 99,
     backgroundColor: '#1d2433',
-    transform: [{ rotate: '-46deg' }],
+    transform: [{ rotate: '-40deg' }],
     zIndex: 0,
   },
   degrausRow: {
@@ -225,7 +225,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'flex-end',
     width: '100%',
-    paddingHorizontal: 24,
+    paddingHorizontal: 20,
     zIndex: 1,
   },
   degrau: {
@@ -234,14 +234,14 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   avatarSlot: {
-    height: 100,
+    height: 60,
     justifyContent: 'flex-end',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 8,
     zIndex: 1,
   },
   notaPressable: {
-    marginTop: 8,
+    marginTop: 26,
     paddingVertical: 4,
     paddingHorizontal: 4,
     zIndex: 1,

@@ -211,8 +211,7 @@ const styles = StyleSheet.create({
   phoneFrame: {
     width: '100%',
     maxWidth: 390,
-    flex: 1,
-    maxHeight: 720,
+    height: 720,
     borderRadius: 22,
     backgroundColor: '#ffffff',
     overflow: 'hidden',
