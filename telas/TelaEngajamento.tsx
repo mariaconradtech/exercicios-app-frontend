@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Animated,
   Easing,
+  Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -110,8 +111,13 @@ export default function TelaEngajamento({ participanteId }: TelaEngajamentoProps
   if (erro || !dados) {
     return (
       <View style={styles.loadingContainer}>
-        <Text style={styles.errorTitle}>Não foi possível abrir o engajamento</Text>
-        <Text style={styles.errorDescription}>{erro ?? 'Erro desconhecido'}</Text>
+        <Text style={styles.errorTitle}>Não foi possível abrir o ranking</Text>
+        <Text style={styles.errorDescription}>
+          {erro ?? 'Verifique sua conexão e tente novamente.'}
+        </Text>
+        <Pressable style={styles.retryButton} onPress={carregar}>
+          <Text style={styles.retryButtonText}>Tentar novamente</Text>
+        </Pressable>
       </View>
     );
   }
@@ -300,6 +306,18 @@ const styles = StyleSheet.create({
     color: '#6b7388',
     fontSize: 15,
     lineHeight: 21,
+  },
+  retryButton: {
+    marginTop: 20,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 24,
+    backgroundColor: '#4467f2',
+  },
+  retryButtonText: {
+    color: '#ffffff',
+    fontSize: 15,
+    fontWeight: '700',
   },
   title: {
     fontSize: 28,

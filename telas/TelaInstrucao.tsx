@@ -1,25 +1,53 @@
 import React from 'react';
-import { PanResponder, Pressable, StyleSheet, Text, View } from 'react-native';
+import { PanResponder, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+
+import type { FaseTreino } from '../types/treino';
 
 type TelaInstrucaoProps = {
   emoji: string;
   primaryLabel: string;
   primaryVariant?: 'outline' | 'solid';
   materiais: string[];
+  nomeTreino: string;
+  fase?: FaseTreino;
+  nivel?: number;
+  quantidadeExercicios: number;
+  duracaoTotalSegundos: number;
   onBackPress?: () => void;
   onPrimaryPress?: () => void;
 };
 
-const MENSAGEM_CARD_1_PARTE_1 =
-  'Hora do treino! Confira os materiais que você vai precisar no próximo card. Assim que estiver com tudo em mãos, clique em ';
-const MENSAGEM_CARD_1_PARTE_2 = ' para começar.';
 const TOTAL_CARDS = 2;
+
+const LABEL_FASE: Record<FaseTreino, string> = {
+  INICIANTE: 'INICIANTE',
+  INTERMEDIARIO: 'INTERMEDIÁRIO',
+  AVANCADO: 'AVANÇADO',
+};
+
+function formatarDuracao(segundos: number): string {
+  if (!Number.isFinite(segundos) || segundos <= 0) {
+    return '~';
+  }
+  const minutos = Math.round(segundos / 60);
+  if (minutos < 60) {
+    return `~${minutos} min`;
+  }
+  const horas = Math.floor(minutos / 60);
+  const restoMin = minutos % 60;
+  return restoMin === 0 ? `~${horas}h` : `~${horas}h${restoMin}min`;
+}
 
 export default function TelaInstrucao({
   emoji,
   primaryLabel,
   primaryVariant = 'solid',
   materiais,
+  nomeTreino,
+  fase,
+  nivel,
+  quantidadeExercicios,
+  duracaoTotalSegundos,
   onBackPress,
   onPrimaryPress,
 }: TelaInstrucaoProps) {
@@ -33,21 +61,21 @@ export default function TelaInstrucao({
     setCardAtivo((atual) => Math.max(atual - 1, 0));
   }, []);
 
-  const handleBack = () => {
+  const handleBack = React.useCallback(() => {
     if (cardAtivo > 0) {
       irParaCardAnterior();
       return;
     }
     onBackPress?.();
-  };
+  }, [cardAtivo, irParaCardAnterior, onBackPress]);
 
-  const handlePrimary = () => {
+  const handlePrimary = React.useCallback(() => {
     if (cardAtivo < TOTAL_CARDS - 1) {
       irParaProximoCard();
       return;
     }
     onPrimaryPress?.();
-  };
+  }, [cardAtivo, irParaProximoCard, onPrimaryPress]);
 
   const panResponder = React.useMemo(
     () =>
@@ -64,17 +92,33 @@ export default function TelaInstrucao({
           }
         },
       }),
-    [cardAtivo, onBackPress, onPrimaryPress],
+    [handleBack, handlePrimary],
   );
 
   const noUltimoCard = cardAtivo === TOTAL_CARDS - 1;
   const labelBotao = noUltimoCard ? primaryLabel : 'Próximo';
   const varianteBotao = noUltimoCard ? primaryVariant : 'outline';
   const iconeBotao = noUltimoCard ? (varianteBotao === 'solid' ? '▶' : '⏭') : '→';
+
   const materiaisUnicos = React.useMemo(
     () => Array.from(new Set(materiais.map((m) => m.trim()).filter(Boolean))),
     [materiais],
   );
+
+  const tituloHeader = React.useMemo(() => {
+    const partes: string[] = [nomeTreino.trim() || 'Treino'];
+    if (typeof nivel === 'number') {
+      partes.push(`NÍVEL ${nivel}`);
+    }
+    if (fase) {
+      partes.push(LABEL_FASE[fase]);
+    }
+    return partes.join(' - ').toUpperCase();
+  }, [nomeTreino, nivel, fase]);
+
+  const subtituloHeader = `${quantidadeExercicios} ${
+    quantidadeExercicios === 1 ? 'exercício' : 'exercícios'
+  } - ${formatarDuracao(duracaoTotalSegundos)}`;
 
   return (
     <View {...panResponder.panHandlers} style={styles.phoneFrame}>
@@ -85,8 +129,10 @@ export default function TelaInstrucao({
           </Pressable>
           <View style={styles.statusPill} />
         </View>
-        <Text style={styles.screenTitle}>TREINO 1 - NÍVEL 1 - INICIANTE</Text>
-        <Text style={styles.screenSubtitle}>6 exercícios - ~45 min</Text>
+        <Text style={styles.screenTitle} numberOfLines={2}>
+          {tituloHeader}
+        </Text>
+        <Text style={styles.screenSubtitle}>{subtituloHeader}</Text>
       </View>
 
       <View style={styles.phoneBody}>
@@ -98,55 +144,64 @@ export default function TelaInstrucao({
 
         <View style={styles.messageCard}>
           {cardAtivo === 0 ? (
-            <Text style={styles.messageText}>
-              {MENSAGEM_CARD_1_PARTE_1}
-              <Text style={styles.messageTextBold}>Iniciar</Text>
-              {MENSAGEM_CARD_1_PARTE_2}
-            </Text>
+            <View style={styles.card1Content}>
+              <Text style={styles.messageText}>
+                Hora do treino! Confira os materiais que você vai precisar no próximo card.
+              </Text>
+              <Text style={[styles.messageText, styles.messageTextSpacing]}>
+                Assim que estiver com tudo em mãos, clique em{' '}
+                <Text style={styles.messageTextBold}>Iniciar</Text> para começar.
+              </Text>
+            </View>
           ) : (
             <View style={styles.materiaisWrap}>
               <Text style={styles.materiaisTitulo}>Materiais necessários</Text>
               {materiaisUnicos.length === 0 ? (
                 <Text style={styles.messageText}>Nenhum material específico para este treino.</Text>
               ) : (
-                materiaisUnicos.map((material, index) => (
-                  <View key={`${material}-${index}`} style={styles.materialItem}>
-                    <Text style={styles.materialBullet}>•</Text>
-                    <Text style={styles.materialTexto}>{material}</Text>
-                  </View>
-                ))
+                <ScrollView
+                  style={styles.materiaisScroll}
+                  contentContainerStyle={styles.materiaisScrollContent}
+                  showsVerticalScrollIndicator={false}
+                >
+                  {materiaisUnicos.map((material, index) => (
+                    <View key={`${material}-${index}`} style={styles.materialItem}>
+                      <Text style={styles.materialBullet}>•</Text>
+                      <Text style={styles.materialTexto}>{material}</Text>
+                    </View>
+                  ))}
+                </ScrollView>
               )}
             </View>
           )}
         </View>
 
-        <View style={styles.dotsRow}>
-          {Array.from({ length: TOTAL_CARDS }).map((_, index) => (
-            <View
-              key={index}
-              style={[styles.dot, index === cardAtivo && styles.dotActive]}
-            />
-          ))}
-        </View>
+        <View style={styles.footerArea}>
+          <View style={styles.dotsRow}>
+            {Array.from({ length: TOTAL_CARDS }).map((_, index) => (
+              <View key={index} style={[styles.dot, index === cardAtivo && styles.dotActive]} />
+            ))}
+          </View>
 
-        <Pressable
-          style={[
-            styles.primaryButton,
-            varianteBotao === 'solid' ? styles.primaryButtonSolid : styles.primaryButtonOutline,
-          ]}
-          onPress={handlePrimary}
-        >
-          <Text
+          <Pressable
             style={[
-              styles.primaryButtonText,
-              varianteBotao === 'solid'
-                ? styles.primaryButtonTextSolid
-                : styles.primaryButtonTextOutline,
+              styles.primaryButton,
+              varianteBotao === 'solid' ? styles.primaryButtonSolid : styles.primaryButtonOutline,
             ]}
+            onPress={handlePrimary}
           >
-            {`${iconeBotao}  ${labelBotao}`}
-          </Text>
-        </Pressable>
+            <Text
+              style={[
+                styles.primaryButtonText,
+                varianteBotao === 'solid'
+                  ? styles.primaryButtonTextSolid
+                  : styles.primaryButtonTextOutline,
+              ]}
+            >
+              {`${iconeBotao}  ${labelBotao}`}
+            </Text>
+          </Pressable>
+        </View>
       </View>
     </View>
   );
@@ -174,7 +229,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#4467f2',
     paddingHorizontal: 22,
     paddingTop: 24,
-    paddingBottom: 32,
+    paddingBottom: 24,
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
   },
@@ -182,7 +237,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 18,
+    marginBottom: 14,
   },
   backButton: {
     paddingRight: 8,
@@ -202,13 +257,13 @@ const styles = StyleSheet.create({
   },
   screenTitle: {
     color: '#ffffff',
-    fontSize: 20,
-    lineHeight: 26,
+    fontSize: 18,
+    lineHeight: 24,
     fontWeight: '800',
     letterSpacing: 0.4,
   },
   screenSubtitle: {
-    color: 'rgba(255,255,255,0.85)',
+    color: 'rgba(255,255,255,0.9)',
     marginTop: 6,
     fontSize: 14,
     lineHeight: 18,
@@ -217,71 +272,83 @@ const styles = StyleSheet.create({
   phoneBody: {
     flex: 1,
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 24,
-    paddingVertical: 32,
+    paddingHorizontal: 20,
+    paddingTop: 24,
+    paddingBottom: 20,
   },
   avatarWrap: {
-    width: 140,
-    height: 140,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 20,
-  },
-  avatarCircle: {
     width: 120,
     height: 120,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  avatarCircle: {
+    width: 110,
+    height: 110,
     borderRadius: 999,
     backgroundColor: '#dfe7ff',
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarEmoji: {
-    fontSize: 56,
-    lineHeight: 64,
+    fontSize: 52,
+    lineHeight: 60,
   },
   messageCard: {
     width: '100%',
-    minHeight: 120,
+    flex: 1,
     borderRadius: 14,
     borderWidth: 1,
     borderColor: '#e4e8f0',
     backgroundColor: '#ffffff',
-    paddingHorizontal: 18,
-    paddingVertical: 18,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    marginBottom: 18,
+  },
+  card1Content: {
+    flex: 1,
     justifyContent: 'center',
-    marginBottom: 20,
   },
   messageText: {
     color: '#4a5260',
-    fontSize: 16,
+    fontSize: 15,
     lineHeight: 22,
     textAlign: 'center',
     fontWeight: '500',
+  },
+  messageTextSpacing: {
+    marginTop: 10,
   },
   messageTextBold: {
     fontWeight: '800',
     color: '#1d2433',
   },
   materiaisWrap: {
-    width: '100%',
+    flex: 1,
   },
   materiaisTitulo: {
-    fontSize: 18,
-    lineHeight: 24,
+    fontSize: 17,
+    lineHeight: 22,
     fontWeight: '800',
     color: '#1d2433',
-    marginBottom: 12,
+    marginBottom: 10,
     textAlign: 'center',
+  },
+  materiaisScroll: {
+    flex: 1,
+  },
+  materiaisScrollContent: {
+    paddingBottom: 4,
   },
   materialItem: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    marginBottom: 8,
-    paddingHorizontal: 4,
+    marginBottom: 6,
+    paddingHorizontal: 2,
   },
   materialBullet: {
-    fontSize: 18,
+    fontSize: 16,
     lineHeight: 22,
     color: '#4467f2',
     marginRight: 8,
@@ -289,16 +356,20 @@ const styles = StyleSheet.create({
   },
   materialTexto: {
     flex: 1,
-    fontSize: 15,
-    lineHeight: 22,
+    fontSize: 14,
+    lineHeight: 20,
     color: '#4a5260',
     fontWeight: '500',
+  },
+  footerArea: {
+    width: '100%',
+    alignItems: 'center',
   },
   dotsRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    marginBottom: 28,
+    marginBottom: 16,
   },
   dot: {
     width: 8,
@@ -314,8 +385,8 @@ const styles = StyleSheet.create({
   primaryButton: {
     borderRadius: 14,
     paddingHorizontal: 22,
-    paddingVertical: 16,
-    minWidth: 220,
+    paddingVertical: 14,
+    minWidth: 200,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -328,8 +399,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#1fc45b',
   },
   primaryButtonText: {
-    fontSize: 18,
-    lineHeight: 22,
+    fontSize: 16,
+    lineHeight: 20,
     fontWeight: '700',
   },
   primaryButtonTextOutline: {
