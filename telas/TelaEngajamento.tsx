@@ -22,11 +22,11 @@ interface TelaEngajamentoProps {
 const medalhasCabecalho = ['🥉', '⭐', '🥉', '🏆'];
 
 function calcularPontos(
-  valores: Array<{ data: string; valor: number }>,
+  valores: Array<{ data: string; valor: number }> | undefined,
   largura: number,
   altura: number,
 ): string {
-  if (valores.length === 0) {
+  if (!valores || valores.length === 0) {
     return '';
   }
 
@@ -124,7 +124,7 @@ export default function TelaEngajamento({ participanteId }: TelaEngajamentoProps
 
   const chartWidth = 310;
   const chartHeight = 150;
-  const pontos = calcularPontos(dados.percepcaoEsforco, chartWidth, chartHeight);
+  const pontos = calcularPontos(dados.percepcaoEsforco ?? [], chartWidth, chartHeight);
   const progresso = Math.min(100, Math.max(0, dados.proximoNivel.progressoPercentual));
 
   return (
