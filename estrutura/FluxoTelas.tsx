@@ -89,6 +89,14 @@ export default function FluxoTelas() {
     return Array.from(conjunto);
   }, [treinoParaRender]);
 
+  const duracaoTotalTreinoSegundos = React.useMemo(() => {
+    return treinoParaRender.itens.reduce((total, item) => {
+      const execucao = item.duracaoEstimadaSegundos * item.series;
+      const descanso = item.descansoSegundos * Math.max(0, item.series - 1);
+      return total + execucao + descanso;
+    }, 0);
+  }, [treinoParaRender]);
+
   const handleBackPress = () => {
     if (screenIndex === 'feedback') {
       setScreenIndex('execucao');
@@ -164,6 +172,11 @@ export default function FluxoTelas() {
           <TelaInstrucao
             emoji={avatarGenero === 'MASCULINO' ? '🏋️' : avatarGenero === 'FEMININO' ? '🧘‍♀️' : '🤖'}
             materiais={materiaisTreino}
+            nomeTreino={treinoParaRender.nome}
+            fase={treinoParaRender.fase}
+            nivel={treinoParaRender.nivel}
+            quantidadeExercicios={treinoParaRender.itens.length}
+            duracaoTotalSegundos={duracaoTotalTreinoSegundos}
             primaryLabel={treinoLoading ? 'Carregando...' : 'Iniciar treino'}
             primaryVariant="solid"
             onBackPress={handleBackPress}
@@ -278,6 +291,8 @@ export default function FluxoTelas() {
     );
   }
 
+  const escondeBottomBar = abaAtiva === 'treino' && screenIndex !== 'intro';
+
   return (
     <SafeAreaView style={styles.appShell}>
       <StatusBar style="dark" />
@@ -291,22 +306,24 @@ export default function FluxoTelas() {
         {abaAtiva === 'perfil' && renderPlaceholder('Perfil', 'Informações de perfil em construção.')}
       </View>
 
-      <View style={[styles.tabBar, isWeb && styles.tabBarWeb]}>
-        {itensAba.map((item) => {
-          const ativo = item.key === abaAtiva;
-          return (
-            <TouchableOpacity
-              key={item.key}
-              style={styles.tabButton}
-              onPress={() => setAbaAtiva(item.key)}
-              activeOpacity={0.85}
-            >
-              <Text style={[styles.tabIcon, ativo && styles.tabIconActive]}>{item.icon}</Text>
-              <Text style={[styles.tabLabel, ativo && styles.tabLabelActive]}>{item.label}</Text>
-            </TouchableOpacity>
-          );
-        })}
-      </View>
+      {!escondeBottomBar && (
+        <View style={[styles.tabBar, isWeb && styles.tabBarWeb]}>
+          {itensAba.map((item) => {
+            const ativo = item.key === abaAtiva;
+            return (
+              <TouchableOpacity
+                key={item.key}
+                style={styles.tabButton}
+                onPress={() => setAbaAtiva(item.key)}
+                activeOpacity={0.85}
+              >
+                <Text style={[styles.tabIcon, ativo && styles.tabIconActive]}>{item.icon}</Text>
+                <Text style={[styles.tabLabel, ativo && styles.tabLabelActive]}>{item.label}</Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      )}
     </SafeAreaView>
   );
 }
@@ -324,14 +341,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 20,
     alignItems: 'center',
-    justifyContent: 'center',
   },
   trainingArea: {
     flex: 1,
     paddingHorizontal: 20,
     paddingVertical: 20,
     alignItems: 'center',
-    justifyContent: 'center',
   },
   scrollContent: {
     flexGrow: 1,
@@ -367,10 +382,11 @@ const styles = StyleSheet.create({
   screensRow: {
     width: '100%',
     maxWidth: 980,
+    flex: 1,
     flexDirection: 'row',
     gap: 28,
     justifyContent: 'center',
-    alignItems: 'flex-start',
+    alignItems: 'stretch',
     flexWrap: 'wrap',
   },
   screensColumn: {

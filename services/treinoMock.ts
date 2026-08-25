@@ -2,7 +2,9 @@ import type { TreinoDetalhadoDTO } from '../types/treino';
 
 export const treinoMock: TreinoDetalhadoDTO = {
   id: 1,
-  nome: 'TREINO 1 - NÍVEL 1 - INICIANTE',
+  nome: 'Treino 1',
+  fase: 'INICIANTE',
+  nivel: 1,
   itens: [
     {
       exercicioId: 1,
