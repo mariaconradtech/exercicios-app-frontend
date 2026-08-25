@@ -209,20 +209,10 @@ export default function TelaInstrucao({
 
 const styles = StyleSheet.create({
   phoneFrame: {
+    flex: 1,
     width: '100%',
-    maxWidth: 390,
-    height: 720,
-    borderRadius: 22,
     backgroundColor: '#ffffff',
     overflow: 'hidden',
-    shadowColor: '#121826',
-    shadowOpacity: 0.12,
-    shadowRadius: 18,
-    shadowOffset: {
-      width: 0,
-      height: 10,
-    },
-    elevation: 6,
   },
   phoneHeader: {
     backgroundColor: '#4467f2',

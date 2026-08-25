@@ -1,13 +1,11 @@
 import React from 'react';
 import { StatusBar } from 'expo-status-bar';
 import {
-  Platform,
   SafeAreaView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
-  useWindowDimensions,
 } from 'react-native';
 
 import { treinoMock } from '../services/treinoMock';
@@ -60,9 +58,6 @@ export default function FluxoTelas() {
   const [treinoLoading, setTreinoLoading] = React.useState(true);
   const [treinoError, setTreinoError] = React.useState<string | null>(null);
   const [sessaoId, setSessaoId] = React.useState<number | null>(null);
-  const { width } = useWindowDimensions();
-  const isCompact = width < 900;
-  const isWeb = Platform.OS === 'web';
 
   React.useEffect(() => {
     buscarTreinoAtivo(1)
@@ -135,17 +130,7 @@ export default function FluxoTelas() {
 
   const renderTreino = () => (
     <View style={styles.trainingArea}>
-      {!isWeb && (
-        <View style={styles.hero}>
-          <Text style={styles.heroLabel}>Treino guiado</Text>
-          <Text style={styles.heroTitle}>Execução orientada</Text>
-          <Text style={styles.heroDescription}>
-            Acompanhe cada etapa com instruções, progresso e feedback de esforço ao final da sessão.
-          </Text>
-        </View>
-      )}
-
-      <View style={[styles.screensRow, isCompact && styles.screensColumn]}>
+      <View style={styles.screensRow}>
         {screenIndex === 'feedback' ? (
           <TelaFeedback
             onBackPress={handleBackPress}
@@ -302,44 +287,57 @@ export default function FluxoTelas() {
     <SafeAreaView style={styles.appShell}>
       <StatusBar style="dark" />
 
-      <View style={styles.mainArea}>
-        {abaAtiva === 'ranking' && (
-          <View style={styles.rankingArea}>
-            {participante ? (
-              <TelaEngajamento participanteId={participante.participanteId} />
-            ) : (
-              renderPlaceholder(
-                'Ranking',
-                'Faça login para visualizar seu ranking e engajamento.',
-              )
+      <View style={styles.phoneShellWrap}>
+        <View style={styles.phoneShell}>
+          <View style={styles.phoneContent}>
+            {abaAtiva === 'ranking' && (
+              <View style={styles.rankingArea}>
+                {participante ? (
+                  <TelaEngajamento participanteId={participante.participanteId} />
+                ) : (
+                  renderPlaceholder(
+                    'Ranking',
+                    'Faça login para visualizar seu ranking e engajamento.',
+                  )
+                )}
+              </View>
             )}
+            {abaAtiva === 'treino' && renderTreino()}
+            {abaAtiva === 'inicio' &&
+              renderPlaceholder(
+                'Início',
+                'Resumo geral em construção. Use a aba Ranking para visualizar o engajamento.',
+              )}
+            {abaAtiva === 'historico' &&
+              renderPlaceholder('Histórico', 'Histórico de sessões em construção.')}
+            {abaAtiva === 'perfil' &&
+              renderPlaceholder('Perfil', 'Informações de perfil em construção.')}
           </View>
-        )}
-        {abaAtiva === 'treino' && renderTreino()}
-        {abaAtiva === 'inicio' &&
-          renderPlaceholder('Início', 'Resumo geral em construção. Use a aba Ranking para visualizar o engajamento.')}
-        {abaAtiva === 'historico' && renderPlaceholder('Histórico', 'Histórico de sessões em construção.')}
-        {abaAtiva === 'perfil' && renderPlaceholder('Perfil', 'Informações de perfil em construção.')}
-      </View>
 
-      {!escondeBottomBar && (
-        <View style={[styles.tabBar, isWeb && styles.tabBarWeb]}>
-          {itensAba.map((item) => {
-            const ativo = item.key === abaAtiva;
-            return (
-              <TouchableOpacity
-                key={item.key}
-                style={styles.tabButton}
-                onPress={() => setAbaAtiva(item.key)}
-                activeOpacity={0.85}
-              >
-                <Text style={[styles.tabIcon, ativo && styles.tabIconActive]}>{item.icon}</Text>
-                <Text style={[styles.tabLabel, ativo && styles.tabLabelActive]}>{item.label}</Text>
-              </TouchableOpacity>
-            );
-          })}
+          {!escondeBottomBar && (
+            <View style={styles.tabBar}>
+              {itensAba.map((item) => {
+                const ativo = item.key === abaAtiva;
+                return (
+                  <TouchableOpacity
+                    key={item.key}
+                    style={styles.tabButton}
+                    onPress={() => setAbaAtiva(item.key)}
+                    activeOpacity={0.85}
+                  >
+                    <Text style={[styles.tabIcon, ativo && styles.tabIconActive]}>
+                      {item.icon}
+                    </Text>
+                    <Text style={[styles.tabLabel, ativo && styles.tabLabelActive]}>
+                      {item.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          )}
         </View>
-      )}
+      </View>
     </SafeAreaView>
   );
 }
@@ -349,77 +347,19 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f8fafc',
   },
-  mainArea: {
+  phoneShellWrap: {
     flex: 1,
-  },
-  rankingArea: {
-    flex: 1,
-    width: '100%',
-    maxWidth: 480,
-    alignSelf: 'center',
-  },
-  modalScreen: {
-    flex: 1,
-    paddingHorizontal: 20,
-    paddingVertical: 20,
-    alignItems: 'center',
-  },
-  trainingArea: {
-    flex: 1,
-    paddingHorizontal: 20,
-    paddingVertical: 20,
-    alignItems: 'center',
-  },
-  scrollContent: {
-    flexGrow: 1,
-    paddingHorizontal: 20,
-    paddingVertical: 28,
     alignItems: 'center',
     justifyContent: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 20,
   },
-  hero: {
-    width: '100%',
-    maxWidth: 980,
-    marginBottom: 22,
-  },
-  heroLabel: {
-    fontSize: 16,
-    color: '#5f6880',
-    letterSpacing: 0.4,
-    marginBottom: 4,
-  },
-  heroTitle: {
-    fontSize: 30,
-    lineHeight: 36,
-    fontWeight: '800',
-    color: '#1f2735',
-    marginBottom: 8,
-  },
-  heroDescription: {
-    maxWidth: 620,
-    fontSize: 15,
-    lineHeight: 22,
-    color: '#59647d',
-  },
-  screensRow: {
-    width: '100%',
-    maxWidth: 980,
-    flex: 1,
-    flexDirection: 'row',
-    gap: 28,
-    justifyContent: 'center',
-    alignItems: 'stretch',
-    flexWrap: 'wrap',
-  },
-  screensColumn: {
-    flexDirection: 'column',
-    alignItems: 'center',
-  },
-  phoneBoundary: {
+  phoneShell: {
     width: '100%',
     maxWidth: 390,
     height: 720,
     borderRadius: 22,
+    backgroundColor: '#ffffff',
     overflow: 'hidden',
     shadowColor: '#121826',
     shadowOpacity: 0.12,
@@ -429,6 +369,35 @@ const styles = StyleSheet.create({
       height: 10,
     },
     elevation: 6,
+    flexDirection: 'column',
+  },
+  phoneContent: {
+    flex: 1,
+    overflow: 'hidden',
+  },
+  rankingArea: {
+    flex: 1,
+    width: '100%',
+    alignSelf: 'stretch',
+  },
+  modalScreen: {
+    flex: 1,
+    paddingHorizontal: 20,
+    paddingVertical: 20,
+    alignItems: 'center',
+  },
+  trainingArea: {
+    flex: 1,
+  },
+  screensRow: {
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'stretch',
+  },
+  phoneBoundary: {
+    flex: 1,
+    overflow: 'hidden',
   },
   phoneBoundaryPlaceholder: {
     flex: 1,
@@ -465,13 +434,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
     flexDirection: 'row',
     justifyContent: 'space-around',
-  },
-  tabBarWeb: {
-    width: '100%',
-    maxWidth: 390,
-    alignSelf: 'center',
-    borderLeftWidth: 1,
-    borderRightWidth: 1,
   },
   tabButton: {
     alignItems: 'center',
