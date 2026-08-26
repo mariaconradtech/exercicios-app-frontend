@@ -125,6 +125,16 @@ export async function buscarTreinoAtivo(treinoId: number): Promise<TreinoDetalha
   return response.json();
 }
 
+export async function buscarTreinoAtivoDoParticipante(
+  participanteId: number,
+): Promise<TreinoDetalhadoDTO> {
+  const response = await fetchComTimeout(
+    `${API_BASE_URL}/treinos/participante/${participanteId}/ativo`,
+  );
+  await tratarResposta(response, 'Não foi possível carregar o treino do participante');
+  return response.json();
+}
+
 export async function iniciarSessao(
   treinoId: number,
   participanteId: number,

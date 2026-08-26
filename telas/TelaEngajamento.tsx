@@ -152,7 +152,7 @@ export default function TelaEngajamento({ participanteId }: TelaEngajamentoProps
           {dados.ranking.map((linha, index) => (
             <View key={linha.participanteId} style={[styles.rankingRow, index % 2 === 0 && styles.altRow]}>
               <Text style={styles.nomeCol} numberOfLines={1}>
-                {linha.nome}
+                {linha.nomeAvatar || linha.nome}
               </Text>
               <Text style={styles.valorCol}>{linha.bronze}</Text>
               <Text style={styles.valorCol}>{linha.estrelas}</Text>

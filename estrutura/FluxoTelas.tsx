@@ -10,7 +10,7 @@ import {
 
 import { treinoMock } from '../services/treinoMock';
 import {
-  buscarTreinoAtivo,
+  buscarTreinoAtivoDoParticipante,
   enviarFeedback,
   login,
   redefinirSenha,
@@ -59,29 +59,12 @@ export default function FluxoTelas() {
   const [treinoError, setTreinoError] = React.useState<string | null>(null);
   const [sessaoId, setSessaoId] = React.useState<number | null>(null);
 
-  React.useEffect(() => {
-    buscarTreinoAtivo(1)
-      .then(setTreino)
-      .catch((error) => {
-        setTreinoError(error instanceof Error ? error.message : 'Erro ao carregar o treino');
-      })
-      .finally(() => setTreinoLoading(false));
-  }, []);
-
   const treinoParaRender = treino ?? treinoMock;
   const materiaisTreino = React.useMemo(() => {
-    const conjunto = new Set<string>();
-    for (const item of treinoParaRender.itens) {
-      const instrucao = item.exercicio?.instrucao ?? [];
-      const linhas = Array.isArray(instrucao) ? instrucao : [String(instrucao)];
-      for (const linha of linhas) {
-        const texto = linha.trim();
-        if (texto) {
-          conjunto.add(texto);
-        }
-      }
-    }
-    return Array.from(conjunto);
+    return (treinoParaRender.descricao ?? '')
+      .split(',')
+      .map((item) => item.trim())
+      .filter(Boolean);
   }, [treinoParaRender]);
 
   const duracaoTotalTreinoSegundos = React.useMemo(() => {
@@ -200,6 +183,20 @@ export default function FluxoTelas() {
                 setLoginError(null);
                 setParticipante(participanteLogado);
                 setEtapa('escolhaAvatar');
+                setTreinoLoading(true);
+                setTreinoError(null);
+                try {
+                  const treinoDoParticipante = await buscarTreinoAtivoDoParticipante(
+                    participanteLogado.participanteId,
+                  );
+                  setTreino(treinoDoParticipante);
+                } catch (error) {
+                  setTreinoError(
+                    error instanceof Error ? error.message : 'Erro ao carregar o treino',
+                  );
+                } finally {
+                  setTreinoLoading(false);
+                }
               } catch (error) {
                 setLoginError(error instanceof Error ? error.message : 'Não foi possível entrar.');
               } finally {

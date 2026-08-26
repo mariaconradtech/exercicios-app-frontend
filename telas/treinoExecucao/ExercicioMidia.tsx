@@ -66,6 +66,7 @@ function getYouTubeEmbedUrl(url: string): string {
 }
 
 export default function ExercicioMidia({ videoUrl }: ExercicioMidiaProps) {
+  const [erroVideo, setErroVideo] = React.useState(false);
   const isYouTube = videoUrl ? isYouTubeUrl(videoUrl) : false;
   const sourceUri = videoUrl
     ? isYouTube
@@ -75,7 +76,7 @@ export default function ExercicioMidia({ videoUrl }: ExercicioMidiaProps) {
 
   return (
     <View style={styles.container}>
-      {sourceUri ? (
+      {sourceUri && !erroVideo ? (
         isYouTube ? (
           Platform.OS === 'web' ? (
             <iframe
@@ -97,18 +98,32 @@ export default function ExercicioMidia({ videoUrl }: ExercicioMidiaProps) {
             />
           )
         ) : (
-          <Video
-            source={{ uri: sourceUri }}
-            style={styles.video}
-            useNativeControls
-            resizeMode={ResizeMode.CONTAIN}
-            shouldPlay={false}
-            isLooping={false}
-          />
+          Platform.OS === 'web' ? (
+            <video
+              controls
+              playsInline
+              preload="metadata"
+              src={sourceUri}
+              style={styles.video}
+              onError={() => setErroVideo(true)}
+            />
+          ) : (
+            <Video
+              source={{ uri: sourceUri }}
+              style={styles.video}
+              useNativeControls
+              resizeMode={ResizeMode.CONTAIN}
+              shouldPlay={false}
+              isLooping={false}
+              onError={() => setErroVideo(true)}
+            />
+          )
         )
       ) : (
         <View style={styles.placeholder}>
-          <Text style={styles.placeholderText}>Vídeo não disponível</Text>
+          <Text style={styles.placeholderText}>
+            {erroVideo ? 'Não foi possível carregar o vídeo.' : 'Vídeo não disponível'}
+          </Text>
           {videoUrl ? <Text style={styles.placeholderText}>{videoUrl}</Text> : null}
         </View>
       )}
