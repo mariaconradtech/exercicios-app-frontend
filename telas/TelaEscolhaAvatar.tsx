@@ -1,14 +1,15 @@
 import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 export type GeneroAvatar = 'FEMININO' | 'MASCULINO';
 
 type TelaEscolhaAvatarProps = {
-  onContinue?: (genero: GeneroAvatar) => void | Promise<void>;
+  onContinue?: (genero: GeneroAvatar, nomeAvatar: string) => void | Promise<void>;
   onBackPress?: () => void;
   isSubmitting?: boolean;
   errorMessage?: string | null;
   initialGenero?: GeneroAvatar | null;
+  initialNomeAvatar?: string;
 };
 
 export default function TelaEscolhaAvatar({
@@ -17,18 +18,22 @@ export default function TelaEscolhaAvatar({
   isSubmitting,
   errorMessage,
   initialGenero = null,
+  initialNomeAvatar = '',
 }: TelaEscolhaAvatarProps) {
   const [generoSelecionado, setGeneroSelecionado] = React.useState<GeneroAvatar | null>(
     initialGenero,
   );
+  const [nomeAvatar, setNomeAvatar] = React.useState<string>(initialNomeAvatar);
 
-  const podeContinuar = Boolean(generoSelecionado) && Boolean(onContinue) && !isSubmitting;
+  const nomeInformado = nomeAvatar.trim().length > 0;
+  const podeContinuar =
+    Boolean(generoSelecionado) && nomeInformado && Boolean(onContinue) && !isSubmitting;
 
   const handleContinuar = () => {
     if (!podeContinuar || !onContinue || !generoSelecionado) {
       return;
     }
-    void onContinue(generoSelecionado);
+    void onContinue(generoSelecionado, nomeAvatar.trim());
   };
 
   return (
@@ -41,7 +46,7 @@ export default function TelaEscolhaAvatar({
         ) : null}
 
         <Text style={styles.title}>Escolha seu avatar</Text>
-        <Text style={styles.subtitle}>Selecione o gênero e depois seu personagem</Text>
+        <Text style={styles.subtitle}>Selecione o seu personagem e o nomeie</Text>
 
         <View style={styles.optionsRow}>
           <OpcaoGenero
@@ -57,6 +62,21 @@ export default function TelaEscolhaAvatar({
             onPress={() => setGeneroSelecionado('MASCULINO')}
           />
         </View>
+
+        {generoSelecionado ? (
+          <View style={styles.nomeField}>
+            <Text style={styles.label}>Nome do avatar</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Escolha o nome do seu avatar"
+              placeholderTextColor="#9aa1af"
+              value={nomeAvatar}
+              onChangeText={setNomeAvatar}
+              autoCapitalize="words"
+              maxLength={40}
+            />
+          </View>
+        ) : null}
 
         {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
 
@@ -95,7 +115,6 @@ function OpcaoGenero({ emoji, label, selecionado, onPress }: OpcaoGeneroProps) {
       accessibilityState={{ selected: selecionado }}
     >
       <Text style={styles.opcaoEmoji}>{emoji}</Text>
-      <Text style={styles.opcaoLabel}>{label}</Text>
     </Pressable>
   );
 }
@@ -104,16 +123,17 @@ const styles = StyleSheet.create({
   card: {
     width: '100%',
     maxWidth: 390,
-    minHeight: 720,
+    flex: 1,
+    maxHeight: 720,
     borderRadius: 22,
     backgroundColor: '#ffffff',
     overflow: 'hidden',
     shadowColor: '#121826',
-    shadowOpacity: 0.1,
-    shadowRadius: 20,
+    shadowOpacity: 0.12,
+    shadowRadius: 18,
     shadowOffset: {
       width: 0,
-      height: 12,
+      height: 10,
     },
     elevation: 6,
   },
@@ -136,21 +156,41 @@ const styles = StyleSheet.create({
     color: '#20222b',
   },
   title: {
-    fontSize: 24,
-    lineHeight: 30,
+    fontSize: 28,
+    lineHeight: 34,
     fontWeight: '800',
     color: '#20222b',
-    marginBottom: 6,
+    marginBottom: 8,
   },
   subtitle: {
-    fontSize: 15,
-    lineHeight: 20,
+    fontSize: 17,
+    lineHeight: 22,
     color: '#8b93a3',
-    marginBottom: 24,
+    marginBottom: 28,
   },
   optionsRow: {
     flexDirection: 'row',
     gap: 14,
+  },
+  nomeField: {
+    marginTop: 20,
+  },
+  label: {
+    fontSize: 15,
+    lineHeight: 18,
+    fontWeight: '600',
+    color: '#20222b',
+    marginBottom: 8,
+  },
+  input: {
+    height: 54,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#e4e8f0',
+    backgroundColor: '#ffffff',
+    paddingHorizontal: 16,
+    fontSize: 17,
+    color: '#20222b',
   },
   opcaoCard: {
     flex: 1,
@@ -191,8 +231,8 @@ const styles = StyleSheet.create({
     minHeight: 24,
   },
   continueButton: {
-    height: 56,
-    borderRadius: 28,
+    height: 58,
+    borderRadius: 29,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#7d8ce8',

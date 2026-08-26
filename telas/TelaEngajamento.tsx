@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Animated,
   Easing,
+  Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -21,11 +22,11 @@ interface TelaEngajamentoProps {
 const medalhasCabecalho = ['🥉', '⭐', '🥉', '🏆'];
 
 function calcularPontos(
-  valores: Array<{ data: string; valor: number }>,
+  valores: Array<{ data: string; valor: number }> | undefined,
   largura: number,
   altura: number,
 ): string {
-  if (valores.length === 0) {
+  if (!valores || valores.length === 0) {
     return '';
   }
 
@@ -110,15 +111,20 @@ export default function TelaEngajamento({ participanteId }: TelaEngajamentoProps
   if (erro || !dados) {
     return (
       <View style={styles.loadingContainer}>
-        <Text style={styles.errorTitle}>Não foi possível abrir o engajamento</Text>
-        <Text style={styles.errorDescription}>{erro ?? 'Erro desconhecido'}</Text>
+        <Text style={styles.errorTitle}>Não foi possível abrir o ranking</Text>
+        <Text style={styles.errorDescription}>
+          {erro ?? 'Verifique sua conexão e tente novamente.'}
+        </Text>
+        <Pressable style={styles.retryButton} onPress={carregar}>
+          <Text style={styles.retryButtonText}>Tentar novamente</Text>
+        </Pressable>
       </View>
     );
   }
 
-  const chartWidth = 310;
-  const chartHeight = 150;
-  const pontos = calcularPontos(dados.percepcaoEsforco, chartWidth, chartHeight);
+  const chartWidth = 280;
+  const chartHeight = 110;
+  const pontos = calcularPontos(dados.percepcaoEsforco ?? [], chartWidth, chartHeight);
   const progresso = Math.min(100, Math.max(0, dados.proximoNivel.progressoPercentual));
 
   return (
@@ -146,7 +152,7 @@ export default function TelaEngajamento({ participanteId }: TelaEngajamentoProps
           {dados.ranking.map((linha, index) => (
             <View key={linha.participanteId} style={[styles.rankingRow, index % 2 === 0 && styles.altRow]}>
               <Text style={styles.nomeCol} numberOfLines={1}>
-                {linha.nome}
+                {linha.nomeAvatar || linha.nome}
               </Text>
               <Text style={styles.valorCol}>{linha.bronze}</Text>
               <Text style={styles.valorCol}>{linha.estrelas}</Text>
@@ -268,20 +274,20 @@ export default function TelaEngajamento({ participanteId }: TelaEngajamentoProps
 const styles = StyleSheet.create({
   page: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#ffffff',
   },
   content: {
-    paddingHorizontal: 18,
-    paddingTop: 18,
-    paddingBottom: 22,
-    gap: 14,
+    paddingHorizontal: 14,
+    paddingTop: 12,
+    paddingBottom: 16,
+    gap: 10,
   },
   loadingContainer: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 24,
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#ffffff',
   },
   loadingText: {
     marginTop: 10,
@@ -301,166 +307,178 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 21,
   },
+  retryButton: {
+    marginTop: 20,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 24,
+    backgroundColor: '#4467f2',
+  },
+  retryButtonText: {
+    color: '#ffffff',
+    fontSize: 15,
+    fontWeight: '700',
+  },
   title: {
-    fontSize: 28,
-    lineHeight: 32,
+    fontSize: 22,
+    lineHeight: 26,
     fontWeight: '800',
     color: '#242b38',
-    marginBottom: 4,
+    marginBottom: 2,
   },
   heroCard: {
     borderWidth: 1,
     borderColor: '#bac8ff',
     backgroundColor: '#eef2ff',
-    borderRadius: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 8,
   },
   heroEmoji: {
-    fontSize: 34,
+    fontSize: 26,
   },
   heroText: {
     flex: 1,
-    fontSize: 15,
-    lineHeight: 23,
+    fontSize: 13,
+    lineHeight: 18,
     color: '#2a3342',
     fontWeight: '700',
   },
   rankingSection: {
     backgroundColor: '#ffffff',
-    borderRadius: 14,
-    paddingHorizontal: 8,
-    paddingTop: 8,
-    paddingBottom: 10,
+    borderRadius: 12,
+    paddingHorizontal: 6,
+    paddingTop: 6,
+    paddingBottom: 8,
     borderWidth: 1,
     borderColor: '#e8ecf6',
   },
   headerIcons: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    marginBottom: 8,
-    marginLeft: 132,
+    marginBottom: 4,
+    marginLeft: 100,
   },
   headerIconText: {
-    fontSize: 24,
+    fontSize: 18,
   },
   rankingRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 8,
-    paddingVertical: 12,
-    paddingHorizontal: 10,
+    borderRadius: 6,
+    paddingVertical: 6,
+    paddingHorizontal: 8,
   },
   altRow: {
     backgroundColor: '#dff3ff',
   },
   nomeCol: {
     flex: 1,
-    fontSize: 20,
-    lineHeight: 24,
+    fontSize: 14,
+    lineHeight: 18,
     color: '#212e80',
     fontStyle: 'italic',
     fontWeight: '700',
-    paddingRight: 6,
+    paddingRight: 4,
   },
   valorCol: {
-    width: 42,
+    width: 30,
     textAlign: 'center',
-    fontSize: 19,
-    lineHeight: 22,
+    fontSize: 14,
+    lineHeight: 18,
     color: '#212e80',
     fontStyle: 'italic',
     fontWeight: '700',
   },
   nivelCard: {
-    borderRadius: 16,
+    borderRadius: 14,
     borderWidth: 1,
     borderColor: '#e6eaf4',
     backgroundColor: '#ffffff',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
   },
   nivelLeft: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 10,
     flexShrink: 1,
   },
   iconBadge: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
+    width: 38,
+    height: 38,
+    borderRadius: 12,
     overflow: 'hidden',
     backgroundColor: '#e4f8eb',
     textAlign: 'center',
-    lineHeight: 48,
-    fontSize: 24,
+    lineHeight: 38,
+    fontSize: 20,
     color: '#0cab4d',
   },
   nivelLabel: {
     color: '#767f95',
-    fontSize: 13,
+    fontSize: 12,
     marginBottom: 2,
   },
   nivelAtual: {
     color: '#20283b',
-    fontSize: 24,
-    lineHeight: 28,
+    fontSize: 18,
+    lineHeight: 22,
     fontWeight: '700',
   },
   nivelHint: {
     color: '#5e677d',
-    fontSize: 13,
+    fontSize: 12,
     marginTop: 2,
-    lineHeight: 18,
-    maxWidth: 220,
+    lineHeight: 16,
+    maxWidth: 180,
   },
   progressCol: {
     alignItems: 'flex-end',
     paddingTop: 2,
   },
   progressLabel: {
-    fontSize: 13,
+    fontSize: 12,
     color: '#7a8298',
   },
   progressValue: {
-    marginTop: 4,
+    marginTop: 2,
     color: '#11a84f',
-    fontSize: 24,
-    lineHeight: 28,
+    fontSize: 20,
+    lineHeight: 24,
     fontWeight: '800',
   },
   chartContainer: {
-    borderRadius: 16,
+    borderRadius: 14,
     borderWidth: 1,
     borderColor: '#e6eaf4',
     backgroundColor: '#ffffff',
-    paddingVertical: 14,
-    paddingHorizontal: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 8,
   },
   chartTitle: {
     textAlign: 'center',
-    fontSize: 17,
+    fontSize: 14,
     color: '#1f2735',
-    marginBottom: 10,
+    marginBottom: 6,
     fontWeight: '600',
   },
   chartInner: {
     alignItems: 'center',
   },
   xLabelsRow: {
-    marginTop: 8,
-    width: 310,
+    marginTop: 6,
+    width: 280,
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
   xLabel: {
-    fontSize: 12,
+    fontSize: 11,
     color: '#5f6880',
   },
   celebracaoOverlay: {

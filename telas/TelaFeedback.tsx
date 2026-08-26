@@ -1,11 +1,18 @@
 import React from 'react';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 
+import type { FaseTreino } from '../types/treino';
+
 type TelaFeedbackProps = {
   onSubmit?: (rating: number) => void | Promise<void>;
   onBackPress?: () => void;
   isSubmitting?: boolean;
   errorMessage?: string | null;
+  nomeTreino: string;
+  fase?: FaseTreino;
+  nivel?: number;
+  quantidadeExercicios: number;
+  duracaoTotalSegundos: number;
 };
 
 const legendaPorNota: Record<number, string> = {
@@ -25,20 +32,30 @@ const avatarPorNota: Record<number, ReturnType<typeof require>> = {
 };
 
 const tamanhoAvatarPorNota: Record<number, { width: number; height: number }> = {
-  0: { width: 32, height: 35 },
+  0: { width: 40, height: 40 },
   3: { width: 44, height: 48 },
   7: { width: 58, height: 63 },
   10: { width: 70, height: 76 },
 };
 
 const notas = Array.from({ length: 11 }, (_, i) => i);
-const DEGRAU_PX = 30;
+const POSICAO_ESCALA = {
+  inicioX: 8,
+  fimX: 98,
+  inicioY: 18,
+  fimY: 68,
+};
 
 export default function TelaFeedback({
   onSubmit,
   onBackPress,
   isSubmitting,
   errorMessage,
+  nomeTreino,
+  fase,
+  nivel,
+  quantidadeExercicios,
+  duracaoTotalSegundos,
 }: TelaFeedbackProps) {
   const [selectedRating, setSelectedRating] = React.useState(0);
 
@@ -48,46 +65,49 @@ export default function TelaFeedback({
 
   return (
     <View style={styles.feedbackCard}>
-      <View style={styles.phoneHeader}>
-        <View style={styles.statusRow}>
-          <Pressable onPress={onBackPress} style={styles.backButton} hitSlop={10}>
-            <Text style={styles.backArrow}>←</Text>
-          </Pressable>
-          <View style={styles.statusPill} />
-        </View>
-
-        <Text style={styles.screenTitle}>TREINO 1 - NÍVEL 1 - INICIANTE</Text>
-        <Text style={styles.screenSubtitle}>6 exercícios - ~45 min</Text>
-      </View>
-
       <View style={styles.content}>
+        <Pressable onPress={onBackPress} style={styles.backButton} hitSlop={10}>
+          <Text style={styles.backArrow}>←</Text>
+        </Pressable>
         <Text style={styles.title}>Como foi o treino?</Text>
         <Text style={styles.subtitle}>Avalie o quão intenso esse treino foi para você</Text>
 
         <View style={styles.escalaWrap}>
           <View style={styles.linhaDiagonal} />
 
-          <View style={styles.degrausRow}>
-            {notas.map((nota) => {
+           {notas.map((nota) => {
               const isSelected = nota === selectedRating;
               const avatarSource = avatarPorNota[nota];
               const tamanhoAvatar = tamanhoAvatarPorNota[nota];
+              const proporcao = nota / 10;
+              const esquerda = POSICAO_ESCALA.inicioX +
+                (POSICAO_ESCALA.fimX - POSICAO_ESCALA.inicioX) * proporcao;
+              const base = POSICAO_ESCALA.inicioY +
+                (POSICAO_ESCALA.fimY - POSICAO_ESCALA.inicioY) * proporcao;
 
               return (
-                <View key={nota} style={[styles.degrau, { marginBottom: nota * DEGRAU_PX }]}>
+                <View
+                  key={nota}
+                  style={[styles.degrau, { left: `${esquerda}%`, bottom: `${base}%` }]}
+                >
                   <View style={styles.avatarSlot}>
                     {avatarSource ? (
                       <Image source={avatarSource} style={tamanhoAvatar} resizeMode="contain" />
                     ) : null}
                   </View>
 
-                  <Pressable onPress={() => handleSelectRating(nota)} hitSlop={8}>
-                    <Text style={[styles.notaTexto, isSelected && styles.notaTextoAtiva]}>{nota}</Text>
+                  <Pressable
+                    onPress={() => handleSelectRating(nota)}
+                    hitSlop={8}
+                    style={styles.notaPressable}
+                  >
+                    <Text style={[styles.notaTexto, isSelected && styles.notaTextoAtiva]}>
+                      {nota}
+                    </Text>
                   </Pressable>
                 </View>
               );
             })}
-          </View>
         </View>
 
         <Text style={styles.legendaSelecionada}>
@@ -102,7 +122,6 @@ export default function TelaFeedback({
             if (!onSubmit || isSubmitting) {
               return;
             }
-
             void onSubmit(selectedRating);
           }}
           disabled={!onSubmit || isSubmitting}
@@ -127,150 +146,125 @@ const styles = StyleSheet.create({
     shadowColor: '#121826',
     shadowOpacity: 0.12,
     shadowRadius: 18,
-    shadowOffset: {
-      width: 0,
-      height: 10,
-    },
+    shadowOffset: { width: 0, height: 10 },
     elevation: 6,
   },
-  phoneHeader: {
-    backgroundColor: '#4467f2',
-    paddingHorizontal: 14,
-    paddingTop: 12,
-    paddingBottom: 18,
-    borderBottomLeftRadius: 16,
-    borderBottomRightRadius: 16,
-  },
-  statusRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 10,
-  },
   backButton: {
-    paddingRight: 8,
+    alignSelf: 'flex-start',
+    paddingRight: 12,
     paddingVertical: 2,
+    marginBottom: 4,
   },
   backArrow: {
-    color: '#ffffff',
-    fontSize: 20,
-    lineHeight: 20,
+    color: '#20222b',
+    fontSize: 28,
+    lineHeight: 30,
     fontWeight: '700',
-  },
-  statusPill: {
-    width: 24,
-    height: 4,
-    borderRadius: 99,
-    backgroundColor: 'rgba(255,255,255,0.72)',
-  },
-  screenTitle: {
-    color: '#ffffff',
-    fontSize: 14,
-    lineHeight: 18,
-    fontWeight: '800',
-    letterSpacing: 0.3,
-  },
-  screenSubtitle: {
-    color: 'rgba(255,255,255,0.85)',
-    marginTop: 3,
-    fontSize: 10,
-    lineHeight: 14,
-    fontWeight: '500',
   },
   content: {
     flex: 1,
     paddingHorizontal: 18,
-    paddingTop: 14,
-    paddingBottom: 16,
+    paddingTop: 18,
+    paddingBottom: 20,
   },
   title: {
-    fontSize: 20,
-    lineHeight: 24,
+    fontSize: 26,
+    lineHeight: 32,
     fontWeight: '800',
     color: '#20222b',
-    marginBottom: 4,
+    marginBottom: 6,
   },
   subtitle: {
-    fontSize: 14,
-    lineHeight: 18,
+    fontSize: 16,
+    lineHeight: 22,
     color: '#6d7482',
-    marginBottom: 10,
+    marginBottom: 18,
   },
   escalaWrap: {
     flex: 1,
-    justifyContent: 'flex-end',
+    minHeight: 360,
     position: 'relative',
-    marginTop: 26,
-    marginBottom: 16,
+    marginTop: 8,
+    marginBottom: 20,
+    paddingBottom: 28,
   },
   linhaDiagonal: {
     position: 'absolute',
-    left: '50%',
-    bottom: 170,
-    width: 420,
-    marginLeft: -210,
-    height: 4,
+    bottom: '43%',
+    left: '-5%',
+    width: '116%',
+    height: 6,
     borderRadius: 99,
     backgroundColor: '#1d2433',
-    transform: [{ rotate: '-46deg' }],
-  },
-  degrausRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
-    width: '100%',
-    paddingHorizontal: 30,
+    transform: [{ rotate: '-37deg' }],
+    zIndex: 0,
   },
   degrau: {
+    position: 'absolute',
+    width: 70,
+    height: 110,
     alignItems: 'center',
-    width: 26,
+    transform: [{ translateX: -35 }, { translateY: 55 }],
+    zIndex: 1,
   },
   avatarSlot: {
-    height: 90,
-    justifyContent: 'flex-end',
+    position: 'absolute',
+    top: -18,
+    width: 70,
+    height: 40,
+    justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 26,
+    zIndex: 1,
+  },
+  notaPressable: {
+    position: 'absolute',
+    top: 66,
+    paddingVertical: 6,
+    paddingHorizontal: 5,
+    zIndex: 1,
   },
   notaTexto: {
-    fontSize: 13,
-    lineHeight: 16,
+    fontSize: 18,
+    lineHeight: 24,
     fontWeight: '800',
     color: '#20222b',
   },
   notaTextoAtiva: {
     color: '#4467f2',
-    fontSize: 16,
+    fontSize: 26,
+    lineHeight: 30,
   },
   legendaSelecionada: {
-    fontSize: 14,
-    lineHeight: 18,
+    fontSize: 17,
+    lineHeight: 23,
     fontWeight: '700',
     color: '#4467f2',
     textAlign: 'center',
-    marginBottom: 4,
+    marginTop: 8,
+    marginBottom: 16,
   },
   errorText: {
-    fontSize: 12,
-    lineHeight: 16,
+    fontSize: 13,
+    lineHeight: 18,
     color: '#e5484d',
     textAlign: 'center',
-    marginBottom: 4,
+    marginBottom: 10,
   },
   submitButton: {
-    height: 40,
-    borderRadius: 8,
+    height: 52,
+    borderRadius: 26,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#8ea5f0',
-    marginTop: 8,
+    backgroundColor: '#4467f2',
+    marginTop: 12,
   },
   submitButtonDisabled: {
-    opacity: 0.96,
+    opacity: 0.6,
   },
   submitButtonText: {
     color: '#ffffff',
-    fontSize: 12,
-    lineHeight: 14,
+    fontSize: 16,
+    lineHeight: 20,
     fontWeight: '700',
   },
 });

@@ -104,11 +104,12 @@ export type GeneroAvatar = 'FEMININO' | 'MASCULINO';
 export async function salvarAvatar(
   participanteId: number,
   genero: GeneroAvatar,
+  nomeAvatar?: string,
 ): Promise<void> {
   const response = await fetch(`${API_BASE_URL}/participantes/${participanteId}/avatar`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ avatarGenero: genero }),
+    body: JSON.stringify({ avatarGenero: genero, nomeAvatar }),
   });
 
   const payload = await response.json().catch(() => ({}));
@@ -121,6 +122,16 @@ export async function salvarAvatar(
 export async function buscarTreinoAtivo(treinoId: number): Promise<TreinoDetalhadoDTO> {
   const response = await fetchComTimeout(`${API_BASE_URL}/treinos/${treinoId}/execucao`);
   await tratarResposta(response, 'Não foi possível carregar o treino');
+  return response.json();
+}
+
+export async function buscarTreinoAtivoDoParticipante(
+  participanteId: number,
+): Promise<TreinoDetalhadoDTO> {
+  const response = await fetchComTimeout(
+    `${API_BASE_URL}/treinos/participante/${participanteId}/ativo`,
+  );
+  await tratarResposta(response, 'Não foi possível carregar o treino do participante');
   return response.json();
 }
 

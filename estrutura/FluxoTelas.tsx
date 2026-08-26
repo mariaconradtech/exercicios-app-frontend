@@ -2,17 +2,15 @@ import React from 'react';
 import { StatusBar } from 'expo-status-bar';
 import {
   SafeAreaView,
-  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
-  useWindowDimensions,
 } from 'react-native';
 
 import { treinoMock } from '../services/treinoMock';
 import {
-  buscarTreinoAtivo,
+  buscarTreinoAtivoDoParticipante,
   enviarFeedback,
   login,
   redefinirSenha,
@@ -55,27 +53,27 @@ export default function FluxoTelas() {
   const [feedbackError, setFeedbackError] = React.useState<string | null>(null);
   const [participante, setParticipante] = React.useState<ParticipanteLogado | null>(null);
   const [avatarGenero, setAvatarGenero] = React.useState<GeneroAvatar | null>(null);
+  const [nomeAvatar, setNomeAvatar] = React.useState<string>('');
   const [treino, setTreino] = React.useState<TreinoDetalhadoDTO | null>(null);
   const [treinoLoading, setTreinoLoading] = React.useState(true);
   const [treinoError, setTreinoError] = React.useState<string | null>(null);
   const [sessaoId, setSessaoId] = React.useState<number | null>(null);
-  const { width } = useWindowDimensions();
-  const isCompact = width < 900;
-
-  React.useEffect(() => {
-    buscarTreinoAtivo(1)
-      .then(setTreino)
-      .catch((error) => {
-        setTreinoError(error instanceof Error ? error.message : 'Erro ao carregar o treino');
-      })
-      .finally(() => setTreinoLoading(false));
-  }, []);
 
   const treinoParaRender = treino ?? treinoMock;
-  const primeiraInstrucao = treinoParaRender.itens[0]?.exercicio?.instrucao ?? [];
-  const mensagemInstrucao = Array.isArray(primeiraInstrucao)
-    ? primeiraInstrucao.join('\n')
-    : String(primeiraInstrucao);
+  const materiaisTreino = React.useMemo(() => {
+    return (treinoParaRender.descricao ?? '')
+      .split(',')
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }, [treinoParaRender]);
+
+  const duracaoTotalTreinoSegundos = React.useMemo(() => {
+    return treinoParaRender.itens.reduce((total, item) => {
+      const execucao = item.duracaoEstimadaSegundos * item.series;
+      const descanso = item.descansoSegundos * Math.max(0, item.series - 1);
+      return total + execucao + descanso;
+    }, 0);
+  }, [treinoParaRender]);
 
   const handleBackPress = () => {
     if (screenIndex === 'feedback') {
@@ -114,22 +112,19 @@ export default function FluxoTelas() {
   };
 
   const renderTreino = () => (
-    <ScrollView contentContainerStyle={styles.scrollContent}>
-      <View style={styles.hero}>
-        <Text style={styles.heroLabel}>Treino guiado</Text>
-        <Text style={styles.heroTitle}>Execução orientada</Text>
-        <Text style={styles.heroDescription}>
-          Acompanhe cada etapa com instruções, progresso e feedback de esforço ao final da sessão.
-        </Text>
-      </View>
-
-      <View style={[styles.screensRow, isCompact && styles.screensColumn]}>
+    <View style={styles.trainingArea}>
+      <View style={styles.screensRow}>
         {screenIndex === 'feedback' ? (
           <TelaFeedback
             onBackPress={handleBackPress}
             onSubmit={handleFeedbackSubmit}
             isSubmitting={isSubmittingFeedback}
             errorMessage={feedbackError}
+            nomeTreino={treinoParaRender.nome}
+            fase={treinoParaRender.fase}
+            nivel={treinoParaRender.nivel}
+            quantidadeExercicios={treinoParaRender.itens.length}
+            duracaoTotalSegundos={duracaoTotalTreinoSegundos}
           />
         ) : screenIndex === 'execucao' ? (
           <View style={styles.phoneBoundary}>
@@ -148,23 +143,21 @@ export default function FluxoTelas() {
           </View>
         ) : (
           <TelaInstrucao
-            emoji="🤖"
-            message={
-              treinoLoading
-                ? 'Carregando instruções do treino...'
-                : treinoError
-                ? `Erro: ${treinoError}`
-                : mensagemInstrucao || 'Olá! Vamos começar o treino de hoje.'
-            }
-            primaryLabel="Iniciar treino"
+            emoji={avatarGenero === 'MASCULINO' ? '🏋️' : avatarGenero === 'FEMININO' ? '🧘‍♀️' : '🤖'}
+            materiais={materiaisTreino}
+            nomeTreino={treinoParaRender.nome}
+            fase={treinoParaRender.fase}
+            nivel={treinoParaRender.nivel}
+            quantidadeExercicios={treinoParaRender.itens.length}
+            duracaoTotalSegundos={duracaoTotalTreinoSegundos}
+            primaryLabel={treinoLoading ? 'Carregando...' : 'Iniciar treino'}
             primaryVariant="solid"
-            activeDot={0}
             onBackPress={handleBackPress}
             onPrimaryPress={() => setScreenIndex('execucao')}
           />
         )}
       </View>
-    </ScrollView>
+    </View>
   );
 
   const renderPlaceholder = (titulo: string, descricao: string) => (
@@ -178,7 +171,7 @@ export default function FluxoTelas() {
     return (
       <SafeAreaView style={styles.appShell}>
         <StatusBar style="dark" />
-        <ScrollView contentContainerStyle={styles.scrollContent}>
+        <View style={styles.modalScreen}>
           <TelaLogin
             isSubmitting={isLoggingIn}
             errorMessage={loginError}
@@ -190,6 +183,20 @@ export default function FluxoTelas() {
                 setLoginError(null);
                 setParticipante(participanteLogado);
                 setEtapa('escolhaAvatar');
+                setTreinoLoading(true);
+                setTreinoError(null);
+                try {
+                  const treinoDoParticipante = await buscarTreinoAtivoDoParticipante(
+                    participanteLogado.participanteId,
+                  );
+                  setTreino(treinoDoParticipante);
+                } catch (error) {
+                  setTreinoError(
+                    error instanceof Error ? error.message : 'Erro ao carregar o treino',
+                  );
+                } finally {
+                  setTreinoLoading(false);
+                }
               } catch (error) {
                 setLoginError(error instanceof Error ? error.message : 'Não foi possível entrar.');
               } finally {
@@ -197,7 +204,7 @@ export default function FluxoTelas() {
               }
             }}
           />
-        </ScrollView>
+        </View>
       </SafeAreaView>
     );
   }
@@ -206,10 +213,11 @@ export default function FluxoTelas() {
     return (
       <SafeAreaView style={styles.appShell}>
         <StatusBar style="dark" />
-        <ScrollView contentContainerStyle={styles.scrollContent}>
+        <View style={styles.modalScreen}>
           <TelaRedefinirSenha
             isSubmitting={isResettingPassword}
             errorMessage={redefinirSenhaError}
+            onBackPress={() => setEtapa('login')}
             onSubmit={async (cpf, novaSenha) => {
               try {
                 setIsResettingPassword(true);
@@ -225,7 +233,7 @@ export default function FluxoTelas() {
               }
             }}
           />
-        </ScrollView>
+        </View>
       </SafeAreaView>
     );
   }
@@ -234,18 +242,20 @@ export default function FluxoTelas() {
     return (
       <SafeAreaView style={styles.appShell}>
         <StatusBar style="dark" />
-        <ScrollView contentContainerStyle={styles.scrollContent}>
+        <View style={styles.modalScreen}>
           <TelaEscolhaAvatar
             isSubmitting={isSavingAvatar}
             errorMessage={avatarError}
             initialGenero={avatarGenero}
+            initialNomeAvatar={nomeAvatar}
             onBackPress={() => setEtapa('login')}
-            onContinue={async (genero) => {
+            onContinue={async (genero, nome) => {
               setAvatarGenero(genero);
+              setNomeAvatar(nome);
               if (participante) {
                 try {
                   setIsSavingAvatar(true);
-                  await salvarAvatar(participante.participanteId, genero);
+                  await salvarAvatar(participante.participanteId, genero, nome);
                   setAvatarError(null);
                   setEtapa('app');
                 } catch (error) {
@@ -263,39 +273,67 @@ export default function FluxoTelas() {
               }
             }}
           />
-        </ScrollView>
+        </View>
       </SafeAreaView>
     );
   }
+
+  const escondeBottomBar = abaAtiva === 'treino' && screenIndex !== 'intro';
 
   return (
     <SafeAreaView style={styles.appShell}>
       <StatusBar style="dark" />
 
-      <View style={styles.mainArea}>
-        {abaAtiva === 'ranking' && <TelaEngajamento participanteId={participante?.participanteId ?? 1} />}
-        {abaAtiva === 'treino' && renderTreino()}
-        {abaAtiva === 'inicio' &&
-          renderPlaceholder('Início', 'Resumo geral em construção. Use a aba Ranking para visualizar o engajamento.')}
-        {abaAtiva === 'historico' && renderPlaceholder('Histórico', 'Histórico de sessões em construção.')}
-        {abaAtiva === 'perfil' && renderPlaceholder('Perfil', 'Informações de perfil em construção.')}
-      </View>
+      <View style={styles.phoneShellWrap}>
+        <View style={styles.phoneShell}>
+          <View style={styles.phoneContent}>
+            {abaAtiva === 'ranking' && (
+              <View style={styles.rankingArea}>
+                {participante ? (
+                  <TelaEngajamento participanteId={participante.participanteId} />
+                ) : (
+                  renderPlaceholder(
+                    'Ranking',
+                    'Faça login para visualizar seu ranking e engajamento.',
+                  )
+                )}
+              </View>
+            )}
+            {abaAtiva === 'treino' && renderTreino()}
+            {abaAtiva === 'inicio' &&
+              renderPlaceholder(
+                'Início',
+                'Resumo geral em construção. Use a aba Ranking para visualizar o engajamento.',
+              )}
+            {abaAtiva === 'historico' &&
+              renderPlaceholder('Histórico', 'Histórico de sessões em construção.')}
+            {abaAtiva === 'perfil' &&
+              renderPlaceholder('Perfil', 'Informações de perfil em construção.')}
+          </View>
 
-      <View style={styles.tabBar}>
-        {itensAba.map((item) => {
-          const ativo = item.key === abaAtiva;
-          return (
-            <TouchableOpacity
-              key={item.key}
-              style={styles.tabButton}
-              onPress={() => setAbaAtiva(item.key)}
-              activeOpacity={0.85}
-            >
-              <Text style={[styles.tabIcon, ativo && styles.tabIconActive]}>{item.icon}</Text>
-              <Text style={[styles.tabLabel, ativo && styles.tabLabelActive]}>{item.label}</Text>
-            </TouchableOpacity>
-          );
-        })}
+          {!escondeBottomBar && (
+            <View style={styles.tabBar}>
+              {itensAba.map((item) => {
+                const ativo = item.key === abaAtiva;
+                return (
+                  <TouchableOpacity
+                    key={item.key}
+                    style={styles.tabButton}
+                    onPress={() => setAbaAtiva(item.key)}
+                    activeOpacity={0.85}
+                  >
+                    <Text style={[styles.tabIcon, ativo && styles.tabIconActive]}>
+                      {item.icon}
+                    </Text>
+                    <Text style={[styles.tabLabel, ativo && styles.tabLabelActive]}>
+                      {item.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          )}
+        </View>
       </View>
     </SafeAreaView>
   );
@@ -306,58 +344,19 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f8fafc',
   },
-  mainArea: {
+  phoneShellWrap: {
     flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
     paddingHorizontal: 20,
-    paddingVertical: 28,
-    alignItems: 'center',
-    justifyContent: 'center',
+    paddingVertical: 20,
   },
-  hero: {
-    width: '100%',
-    maxWidth: 980,
-    marginBottom: 22,
-  },
-  heroLabel: {
-    fontSize: 16,
-    color: '#5f6880',
-    letterSpacing: 0.4,
-    marginBottom: 4,
-  },
-  heroTitle: {
-    fontSize: 30,
-    lineHeight: 36,
-    fontWeight: '800',
-    color: '#1f2735',
-    marginBottom: 8,
-  },
-  heroDescription: {
-    maxWidth: 620,
-    fontSize: 15,
-    lineHeight: 22,
-    color: '#59647d',
-  },
-  screensRow: {
-    width: '100%',
-    maxWidth: 980,
-    flexDirection: 'row',
-    gap: 28,
-    justifyContent: 'center',
-    alignItems: 'flex-start',
-    flexWrap: 'wrap',
-  },
-  screensColumn: {
-    flexDirection: 'column',
-    alignItems: 'center',
-  },
-  phoneBoundary: {
+  phoneShell: {
     width: '100%',
     maxWidth: 390,
     height: 720,
     borderRadius: 22,
+    backgroundColor: '#ffffff',
     overflow: 'hidden',
     shadowColor: '#121826',
     shadowOpacity: 0.12,
@@ -367,6 +366,35 @@ const styles = StyleSheet.create({
       height: 10,
     },
     elevation: 6,
+    flexDirection: 'column',
+  },
+  phoneContent: {
+    flex: 1,
+    overflow: 'hidden',
+  },
+  rankingArea: {
+    flex: 1,
+    width: '100%',
+    alignSelf: 'stretch',
+  },
+  modalScreen: {
+    flex: 1,
+    paddingHorizontal: 20,
+    paddingVertical: 20,
+    alignItems: 'center',
+  },
+  trainingArea: {
+    flex: 1,
+  },
+  screensRow: {
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'stretch',
+  },
+  phoneBoundary: {
+    flex: 1,
+    overflow: 'hidden',
   },
   phoneBoundaryPlaceholder: {
     flex: 1,

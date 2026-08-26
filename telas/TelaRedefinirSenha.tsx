@@ -6,6 +6,7 @@ import IconeOlho from './IconeOlho';
 
 type TelaRedefinirSenhaProps = {
   onSubmit?: (cpf: string, novaSenha: string) => void | Promise<void>;
+  onBackPress?: () => void;
   isSubmitting?: boolean;
   errorMessage?: string | null;
 };
@@ -18,6 +19,7 @@ function senhaAtendeRegra(senha: string): boolean {
 
 export default function TelaRedefinirSenha({
   onSubmit,
+  onBackPress,
   isSubmitting,
   errorMessage,
 }: TelaRedefinirSenhaProps) {
@@ -61,6 +63,11 @@ export default function TelaRedefinirSenha({
   return (
     <View style={styles.card}>
       <View style={styles.header}>
+        {onBackPress ? (
+          <Pressable onPress={onBackPress} hitSlop={12} style={styles.backButton}>
+            <Text style={styles.backArrow}>←</Text>
+          </Pressable>
+        ) : null}
         <Text style={styles.headerTitle}>Meraki</Text>
         <Text style={styles.headerSubtitle}>Poder cuidar a partir do conforto da sua casa</Text>
       </View>
@@ -136,7 +143,8 @@ const styles = StyleSheet.create({
   card: {
     width: '100%',
     maxWidth: 390,
-    minHeight: 720,
+    flex: 1,
+    maxHeight: 720,
     borderRadius: 22,
     backgroundColor: '#ffffff',
     overflow: 'hidden',
@@ -156,6 +164,18 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
     borderBottomLeftRadius: 32,
     borderBottomRightRadius: 32,
+  },
+  backButton: {
+    alignSelf: 'flex-start',
+    paddingVertical: 4,
+    paddingRight: 12,
+    marginBottom: 8,
+  },
+  backArrow: {
+    color: '#ffffff',
+    fontSize: 28,
+    lineHeight: 32,
+    fontWeight: '700',
   },
   headerTitle: {
     color: '#ffffff',
@@ -177,66 +197,66 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
   },
   title: {
-    fontSize: 24,
-    lineHeight: 28,
+    fontSize: 28,
+    lineHeight: 34,
     fontWeight: '800',
     color: '#4467f2',
     marginBottom: 24,
   },
   field: {
-    marginBottom: 18,
+    marginBottom: 20,
   },
   label: {
-    fontSize: 13,
-    lineHeight: 16,
+    fontSize: 15,
+    lineHeight: 18,
     fontWeight: '600',
     color: '#20222b',
-    marginBottom: 6,
+    marginBottom: 8,
   },
   input: {
-    height: 46,
-    borderRadius: 10,
+    height: 54,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: '#e4e8f0',
     backgroundColor: '#ffffff',
-    paddingHorizontal: 14,
-    fontSize: 14,
+    paddingHorizontal: 16,
+    fontSize: 17,
     color: '#20222b',
   },
   inputRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    height: 46,
-    borderRadius: 10,
+    height: 54,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: '#e4e8f0',
     backgroundColor: '#ffffff',
-    paddingHorizontal: 14,
+    paddingHorizontal: 16,
   },
   inputFlex: {
     flex: 1,
-    fontSize: 14,
+    fontSize: 17,
     color: '#20222b',
   },
   hintText: {
-    marginTop: 6,
-    fontSize: 11,
-    lineHeight: 14,
+    marginTop: 8,
+    fontSize: 13,
+    lineHeight: 17,
     color: '#8a90a0',
   },
   errorText: {
-    fontSize: 13,
-    lineHeight: 17,
+    fontSize: 15,
+    lineHeight: 20,
     color: '#e5484d',
     textAlign: 'center',
-    marginTop: 4,
+    marginTop: 8,
   },
   spacer: {
     flex: 1,
   },
   submitButton: {
-    height: 52,
-    borderRadius: 26,
+    height: 58,
+    borderRadius: 29,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#4467f2',
@@ -246,8 +266,8 @@ const styles = StyleSheet.create({
   },
   submitButtonText: {
     color: '#ffffff',
-    fontSize: 16,
-    lineHeight: 20,
+    fontSize: 18,
+    lineHeight: 22,
     fontWeight: '700',
   },
 });
