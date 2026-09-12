@@ -22,7 +22,7 @@ export default function ModalFinalizarTreino({ visivel, onContinuar, onEncerrar 
 
         <View style={styles.botoes}>
           <Pressable style={styles.botaoContinuar} onPress={onContinuar}>
-            <Text style={styles.textoContinuar}>Continuar</Text>
+            <Text style={styles.textoContinuar}>Cancelar</Text>
           </Pressable>
           <Pressable style={styles.botaoEncerrar} onPress={onEncerrar}>
             <Text style={styles.textoEncerrar}>Encerrar</Text>

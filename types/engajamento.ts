@@ -3,12 +3,14 @@ export type CategoriaEngajamento = 'OURO' | 'PRATA' | 'BRONZE';
 export interface PodioItemDTO {
   categoria: CategoriaEngajamento;
   participanteNome: string;
+  nomeAvatar?: string;
   treinosConcluidos: number;
 }
 
 export interface RankingItemDTO {
   participanteId: number;
   nome: string;
+  nomeAvatar: string;
   bronze: number;
   estrelas: number;
   medalhas: number;
