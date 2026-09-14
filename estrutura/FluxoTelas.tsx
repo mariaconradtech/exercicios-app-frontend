@@ -61,7 +61,7 @@ export default function FluxoTelas() {
 
   const treinoParaRender = treino ?? treinoMock;
   const materiaisTreino = React.useMemo(() => {
-    return (treinoParaRender.descricao ?? '')
+    return (treinoParaRender.instrucao ?? '')
       .split(',')
       .map((item) => item.trim())
       .filter(Boolean);
