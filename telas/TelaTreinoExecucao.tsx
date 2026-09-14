@@ -40,6 +40,7 @@ export default function TelaTreinoExecucao({
     registro,
     sessaoId,
     isConfirmModalOpen,
+    percentualConcluido,
     pausar,
     retomar,
     pedirFinalizar,
@@ -48,20 +49,27 @@ export default function TelaTreinoExecucao({
   } = useTreinoExecucao(treino, participanteId);
 
   const jaNotificouRef = React.useRef(false);
-  React.useEffect(() => {
-    if ((status === 'CONCLUIDA' || status === 'INTERROMPIDA') && !jaNotificouRef.current) {
+  const handleMensagemFinalizacaoConcluida = React.useCallback(() => {
+    if (!jaNotificouRef.current) {
       jaNotificouRef.current = true;
       onFinish?.(registro, sessaoId);
     }
-  }, [status, registro, onFinish, sessaoId]);
+  }, [registro, onFinish, sessaoId]);
 
   const pausado = status === 'PAUSADO';
 
-  // Quando o treino termina (concluído ou interrompido), esta tela não navega
-  // para lugar nenhum sozinha — quem a monta decide o que vem a seguir a
-  // partir de `onFinish`. Por isso não renderiza nada neste ponto.
+  // Ao terminar, mostra a mensagem positiva antes de entregar o fluxo para a tela de feedback.
   if (status === 'CONCLUIDA' || status === 'INTERROMPIDA') {
-    return null;
+    return (
+      <SafeAreaView style={styles.container}>
+        <StatusBar style="dark" />
+        <ModalFinalizarTreino
+          visivel
+          tipo={status === 'CONCLUIDA' ? 'concluido' : 'interrompido'}
+          onContinuar={handleMensagemFinalizacaoConcluida}
+        />
+      </SafeAreaView>
+    );
   }
 
   if (faseVisivel === 'DESCANSO') {
@@ -84,6 +92,7 @@ export default function TelaTreinoExecucao({
         />
         <ModalFinalizarTreino
           visivel={isConfirmModalOpen}
+          percentualConcluido={percentualConcluido}
           onContinuar={continuarTreino}
           onEncerrar={confirmarFinalizar}
         />
@@ -117,7 +126,12 @@ export default function TelaTreinoExecucao({
         <AcoesTreino pausado={pausado} onTogglePause={pausado ? retomar : pausar} onFinalizar={pedirFinalizar} />
       </View>
 
-      <ModalFinalizarTreino visivel={isConfirmModalOpen} onContinuar={continuarTreino} onEncerrar={confirmarFinalizar} />
+      <ModalFinalizarTreino
+        visivel={isConfirmModalOpen}
+        percentualConcluido={percentualConcluido}
+        onContinuar={continuarTreino}
+        onEncerrar={confirmarFinalizar}
+      />
     </SafeAreaView>
   );
 }

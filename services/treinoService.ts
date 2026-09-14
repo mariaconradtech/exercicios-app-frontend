@@ -12,6 +12,7 @@ import type { EngajamentoDTO } from '../types/engajamento';
 //   iniciarSessao       -> POST  /sessoes
 //   registrarProgresso  -> PATCH /sessoes/:sessaoId/progresso
 //   finalizarSessao     -> PATCH /sessoes/:sessaoId/finalizar
+//   enviarFeedback      -> POST  /avaliacoes
 
 export function resolverApiBaseUrl(): string {
   const envApiUrl = process.env.EXPO_PUBLIC_API_URL;
