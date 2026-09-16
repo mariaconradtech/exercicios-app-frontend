@@ -10,6 +10,7 @@ import {
 
 import { treinoMock } from '../services/treinoMock';
 import {
+  buscarPerfilParticipante,
   buscarTreinoAtivoDoParticipante,
   enviarFeedback,
   login,
@@ -23,6 +24,7 @@ import TelaFeedback from '../telas/TelaFeedback';
 import TelaEngajamento from '../telas/TelaEngajamento';
 import TelaInstrucao from '../telas/TelaInstrucao';
 import TelaLogin from '../telas/TelaLogin';
+import TelaPerfil from '../telas/TelaPerfil';
 import TelaRedefinirSenha from '../telas/TelaRedefinirSenha';
 import TelaTreinoExecucao from '../telas/TelaTreinoExecucao';
 import type { RegistroExecucao, TreinoDetalhadoDTO } from '../types/treino';
@@ -160,6 +162,19 @@ export default function FluxoTelas() {
     </View>
   );
 
+  const handleLogout = () => {
+    setParticipante(null);
+    setAvatarGenero(null);
+    setNomeAvatar('');
+    setTreino(null);
+    setTreinoError(null);
+    setSessaoId(null);
+    setAbaAtiva('treino');
+    setScreenIndex('intro');
+    setLoginError(null);
+    setEtapa('login');
+  };
+
   const renderPlaceholder = (titulo: string, descricao: string) => (
     <View style={styles.placeholder}>
       <Text style={styles.placeholderTitle}>{titulo}</Text>
@@ -182,7 +197,22 @@ export default function FluxoTelas() {
                 const participanteLogado = await login(cpf, senha);
                 setLoginError(null);
                 setParticipante(participanteLogado);
-                setEtapa('escolhaAvatar');
+
+                try {
+                  const perfil = await buscarPerfilParticipante(participanteLogado.participanteId);
+                  if (perfil.avatarGenero) {
+                    setAvatarGenero(perfil.avatarGenero);
+                    setNomeAvatar(perfil.nomeAvatar ?? '');
+                    setEtapa('app');
+                  } else {
+                    setEtapa('escolhaAvatar');
+                  }
+                } catch {
+                  // Falha ao buscar o perfil (ex.: rede instável) não significa que o
+                  // participante nunca configurou avatar — não force a reconfiguração.
+                  setEtapa('app');
+                }
+
                 setTreinoLoading(true);
                 setTreinoError(null);
                 try {
@@ -248,14 +278,14 @@ export default function FluxoTelas() {
             errorMessage={avatarError}
             initialGenero={avatarGenero}
             initialNomeAvatar={nomeAvatar}
-            onBackPress={() => setEtapa('login')}
+            onBackPress={() => setEtapa(participante ? 'app' : 'login')}
             onContinue={async (genero, nome) => {
-              setAvatarGenero(genero);
-              setNomeAvatar(nome);
               if (participante) {
                 try {
                   setIsSavingAvatar(true);
                   await salvarAvatar(participante.participanteId, genero, nome);
+                  setAvatarGenero(genero);
+                  setNomeAvatar(nome);
                   setAvatarError(null);
                   setEtapa('app');
                 } catch (error) {
@@ -268,6 +298,8 @@ export default function FluxoTelas() {
                   setIsSavingAvatar(false);
                 }
               } else {
+                setAvatarGenero(genero);
+                setNomeAvatar(nome);
                 setAvatarError(null);
                 setEtapa('app');
               }
@@ -307,8 +339,20 @@ export default function FluxoTelas() {
               )}
             {abaAtiva === 'historico' &&
               renderPlaceholder('Histórico', 'Histórico de sessões em construção.')}
-            {abaAtiva === 'perfil' &&
-              renderPlaceholder('Perfil', 'Informações de perfil em construção.')}
+            {abaAtiva === 'perfil' && !participante &&
+              renderPlaceholder('Perfil', 'Faça login para visualizar seu perfil.')}
+            {participante && (
+              <View
+                style={[styles.perfilLayer, abaAtiva !== 'perfil' && styles.perfilLayerHidden]}
+                pointerEvents={abaAtiva === 'perfil' ? 'auto' : 'none'}
+              >
+                <TelaPerfil
+                  participanteId={participante.participanteId}
+                  onAlterarAvatar={() => setEtapa('escolhaAvatar')}
+                  onLogout={handleLogout}
+                />
+              </View>
+            )}
           </View>
 
           {!escondeBottomBar && (
@@ -376,6 +420,12 @@ const styles = StyleSheet.create({
     flex: 1,
     width: '100%',
     alignSelf: 'stretch',
+  },
+  perfilLayer: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  perfilLayerHidden: {
+    display: 'none',
   },
   modalScreen: {
     flex: 1,

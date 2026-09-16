@@ -3,10 +3,12 @@ import { Platform } from 'react-native';
 
 import type { TreinoDetalhadoDTO } from '../types/treino';
 import type { EngajamentoDTO } from '../types/engajamento';
+import type { PerfilParticipanteDTO } from '../types/perfil';
 
 // Contrato da API (implementado no repo exercicios-app-backend, src/routes/):
 //   login               -> POST  /login
 //   redefinirSenha      -> PATCH /senha
+//   buscarPerfilParticipante -> GET /participantes/:participanteId/perfil
 //   salvarAvatar        -> PATCH /participantes/:participanteId/avatar
 //   buscarTreinoAtivo   -> GET   /treinos/:treinoId/execucao
 //   iniciarSessao       -> POST  /sessoes
@@ -201,5 +203,11 @@ export async function buscarEngajamento(participanteId: number): Promise<Engajam
   });
 
   await tratarResposta(response, 'Não foi possível carregar o engajamento');
+  return response.json();
+}
+
+export async function buscarPerfilParticipante(participanteId: number): Promise<PerfilParticipanteDTO> {
+  const response = await fetchComTimeout(`${API_BASE_URL}/participantes/${participanteId}/perfil`);
+  await tratarResposta(response, 'Não foi possível carregar o perfil');
   return response.json();
 }
