@@ -171,6 +171,16 @@ export default function TelaPerfil({
         </View>
         <View style={styles.dadosSeparador} />
 
+        {dados.nomeAvatar && (
+          <>
+            <View style={styles.dadosLinha}>
+              <Text style={styles.dadosLabel}>Nome do avatar</Text>
+              <Text style={styles.dadosValor}>{dados.nomeAvatar}</Text>
+            </View>
+            <View style={styles.dadosSeparador} />
+          </>
+        )}
+
         <View style={styles.dadosLinha}>
           <Text style={styles.dadosLabel}>Categoria</Text>
           <Text style={styles.dadosValor}>{dados.categoria}</Text>
@@ -183,13 +193,23 @@ export default function TelaPerfil({
         </View>
       </View>
 
-      <Pressable style={styles.acaoBotao} onPress={onAlterarAvatar}>
+      <Pressable
+        style={styles.acaoBotao}
+        onPress={onAlterarAvatar}
+        accessibilityRole="button"
+        accessibilityLabel="Alterar avatar"
+      >
         <Text style={styles.acaoIcone}>👤</Text>
         <Text style={styles.acaoTexto}>Alterar Avatar</Text>
         <Text style={styles.acaoSeta}>›</Text>
       </Pressable>
 
-      <Pressable style={styles.logoutBotao} onPress={onLogout}>
+      <Pressable
+        style={styles.logoutBotao}
+        onPress={onLogout}
+        accessibilityRole="button"
+        accessibilityLabel="Sair da conta"
+      >
         <Text style={styles.logoutIcone}>⇥</Text>
         <Text style={styles.logoutTexto}>Sair da conta</Text>
       </Pressable>

@@ -208,7 +208,9 @@ export default function FluxoTelas() {
                     setEtapa('escolhaAvatar');
                   }
                 } catch {
-                  setEtapa('escolhaAvatar');
+                  // Falha ao buscar o perfil (ex.: rede instável) não significa que o
+                  // participante nunca configurou avatar — não force a reconfiguração.
+                  setEtapa('app');
                 }
 
                 setTreinoLoading(true);
@@ -337,16 +339,20 @@ export default function FluxoTelas() {
               )}
             {abaAtiva === 'historico' &&
               renderPlaceholder('Histórico', 'Histórico de sessões em construção.')}
-            {abaAtiva === 'perfil' &&
-              (participante ? (
+            {abaAtiva === 'perfil' && !participante &&
+              renderPlaceholder('Perfil', 'Faça login para visualizar seu perfil.')}
+            {participante && (
+              <View
+                style={[styles.perfilLayer, abaAtiva !== 'perfil' && styles.perfilLayerHidden]}
+                pointerEvents={abaAtiva === 'perfil' ? 'auto' : 'none'}
+              >
                 <TelaPerfil
                   participanteId={participante.participanteId}
                   onAlterarAvatar={() => setEtapa('escolhaAvatar')}
                   onLogout={handleLogout}
                 />
-              ) : (
-                renderPlaceholder('Perfil', 'Faça login para visualizar seu perfil.')
-              ))}
+              </View>
+            )}
           </View>
 
           {!escondeBottomBar && (
@@ -414,6 +420,12 @@ const styles = StyleSheet.create({
     flex: 1,
     width: '100%',
     alignSelf: 'stretch',
+  },
+  perfilLayer: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  perfilLayerHidden: {
+    display: 'none',
   },
   modalScreen: {
     flex: 1,
