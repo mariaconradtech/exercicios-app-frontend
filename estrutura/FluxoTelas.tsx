@@ -22,12 +22,13 @@ import {
 import TelaEscolhaAvatar from '../telas/TelaEscolhaAvatar';
 import TelaFeedback from '../telas/TelaFeedback';
 import TelaEngajamento from '../telas/TelaEngajamento';
+import TelaInicio, { type ProximoTreinoResumo } from '../telas/TelaInicio';
 import TelaInstrucao from '../telas/TelaInstrucao';
 import TelaLogin from '../telas/TelaLogin';
 import TelaPerfil from '../telas/TelaPerfil';
 import TelaRedefinirSenha from '../telas/TelaRedefinirSenha';
 import TelaTreinoExecucao from '../telas/TelaTreinoExecucao';
-import type { RegistroExecucao, TreinoDetalhadoDTO } from '../types/treino';
+import type { RegistroExecucao, TreinoDetalhadoDTO, TreinoExercicioDTO } from '../types/treino';
 
 type Etapa = 'login' | 'redefinirSenha' | 'escolhaAvatar' | 'app';
 type TrainingStep = 'intro' | 'execucao' | 'feedback';
@@ -40,6 +41,14 @@ const itensAba: Array<{ key: Aba; icon: string; label: string }> = [
   { key: 'ranking', icon: '🏆', label: 'Ranking' },
   { key: 'perfil', icon: '◌', label: 'Perfil' },
 ];
+
+function calcularDuracaoSegundos(itens: TreinoExercicioDTO[]): number {
+  return itens.reduce((total, item) => {
+    const execucao = item.duracaoEstimadaSegundos * item.series;
+    const descanso = item.descansoSegundos * Math.max(0, item.series - 1);
+    return total + execucao + descanso;
+  }, 0);
+}
 
 export default function FluxoTelas() {
   const [etapa, setEtapa] = React.useState<Etapa>('login');
@@ -69,13 +78,29 @@ export default function FluxoTelas() {
       .filter(Boolean);
   }, [treinoParaRender]);
 
-  const duracaoTotalTreinoSegundos = React.useMemo(() => {
-    return treinoParaRender.itens.reduce((total, item) => {
-      const execucao = item.duracaoEstimadaSegundos * item.series;
-      const descanso = item.descansoSegundos * Math.max(0, item.series - 1);
-      return total + execucao + descanso;
-    }, 0);
-  }, [treinoParaRender]);
+  const duracaoTotalTreinoSegundos = React.useMemo(
+    () => calcularDuracaoSegundos(treinoParaRender.itens),
+    [treinoParaRender],
+  );
+
+  const proximoTreinoResumo: ProximoTreinoResumo | null = React.useMemo(() => {
+    if (!treino) {
+      return null;
+    }
+
+    return {
+      nome: treino.nome,
+      fase: treino.fase,
+      nivel: treino.nivel,
+      quantidadeExercicios: treino.itens.length,
+      duracaoTotalSegundos: calcularDuracaoSegundos(treino.itens),
+    };
+  }, [treino]);
+
+  const handleIniciarTreinoPelaHome = () => {
+    setAbaAtiva('treino');
+    setScreenIndex('execucao');
+  };
 
   const handleBackPress = () => {
     if (screenIndex === 'feedback') {
@@ -332,18 +357,31 @@ export default function FluxoTelas() {
               </View>
             )}
             {abaAtiva === 'treino' && renderTreino()}
-            {abaAtiva === 'inicio' &&
-              renderPlaceholder(
-                'Início',
-                'Resumo geral em construção. Use a aba Ranking para visualizar o engajamento.',
-              )}
+            {abaAtiva === 'inicio' && !participante &&
+              renderPlaceholder('Início', 'Faça login para visualizar seu início.')}
             {abaAtiva === 'historico' &&
               renderPlaceholder('Histórico', 'Histórico de sessões em construção.')}
             {abaAtiva === 'perfil' && !participante &&
               renderPlaceholder('Perfil', 'Faça login para visualizar seu perfil.')}
             {participante && (
               <View
-                style={[styles.perfilLayer, abaAtiva !== 'perfil' && styles.perfilLayerHidden]}
+                style={[styles.tabLayer, abaAtiva !== 'inicio' && styles.tabLayerHidden]}
+                pointerEvents={abaAtiva === 'inicio' ? 'auto' : 'none'}
+              >
+                <TelaInicio
+                  participanteId={participante.participanteId}
+                  nome={participante.nome}
+                  avatarGenero={avatarGenero}
+                  proximoTreino={proximoTreinoResumo}
+                  proximoTreinoCarregando={treinoLoading}
+                  onIniciarTreino={handleIniciarTreinoPelaHome}
+                  onAbrirPerfil={() => setAbaAtiva('perfil')}
+                />
+              </View>
+            )}
+            {participante && (
+              <View
+                style={[styles.tabLayer, abaAtiva !== 'perfil' && styles.tabLayerHidden]}
                 pointerEvents={abaAtiva === 'perfil' ? 'auto' : 'none'}
               >
                 <TelaPerfil
@@ -421,10 +459,10 @@ const styles = StyleSheet.create({
     width: '100%',
     alignSelf: 'stretch',
   },
-  perfilLayer: {
+  tabLayer: {
     ...StyleSheet.absoluteFillObject,
   },
-  perfilLayerHidden: {
+  tabLayerHidden: {
     display: 'none',
   },
   modalScreen: {
