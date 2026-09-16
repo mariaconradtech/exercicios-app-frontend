@@ -3,10 +3,14 @@ import { Platform } from 'react-native';
 
 import type { TreinoDetalhadoDTO } from '../types/treino';
 import type { EngajamentoDTO } from '../types/engajamento';
+import type { PerfilParticipanteDTO } from '../types/perfil';
+import type { InicioParticipanteDTO } from '../types/inicio';
 
 // Contrato da API (implementado no repo exercicios-app-backend, src/routes/):
 //   login               -> POST  /login
 //   redefinirSenha      -> PATCH /senha
+//   buscarPerfilParticipante -> GET /participantes/:participanteId/perfil
+//   buscarInicioParticipante -> GET /participantes/:participanteId/inicio
 //   salvarAvatar        -> PATCH /participantes/:participanteId/avatar
 //   buscarTreinoAtivo   -> GET   /treinos/:treinoId/execucao
 //   iniciarSessao       -> POST  /sessoes
@@ -202,5 +206,23 @@ export async function buscarEngajamento(participanteId: number): Promise<Engajam
   });
 
   await tratarResposta(response, 'Não foi possível carregar o engajamento');
+  return response.json();
+}
+
+export async function buscarPerfilParticipante(participanteId: number): Promise<PerfilParticipanteDTO> {
+  const response = await fetchComTimeout(`${API_BASE_URL}/participantes/${participanteId}/perfil`);
+  await tratarResposta(response, 'Não foi possível carregar o perfil');
+  return response.json();
+}
+
+export async function buscarInicioParticipante(
+  participanteId: number,
+  mes: number,
+  ano: number,
+): Promise<InicioParticipanteDTO> {
+  const response = await fetchComTimeout(
+    `${API_BASE_URL}/participantes/${participanteId}/inicio?mes=${mes}&ano=${ano}`,
+  );
+  await tratarResposta(response, 'Não foi possível carregar os dados da tela inicial');
   return response.json();
 }
