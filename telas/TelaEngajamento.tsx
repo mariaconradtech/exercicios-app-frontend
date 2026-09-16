@@ -191,6 +191,7 @@ export default function TelaEngajamento({ participanteId }: TelaEngajamentoProps
         <View style={styles.rankingSection}>
           <Text style={styles.sectionTitle}>Ranking da sua fase</Text>
           <View style={styles.headerIcons}>
+            <View style={styles.headerIconsSpacer} />
             {medalhasCabecalho.map((item, index) => (
               <Text key={`${item}-${index}`} style={styles.headerIconText}>
                 {item}
@@ -485,11 +486,17 @@ const styles = StyleSheet.create({
   },
   headerIcons: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
+    alignItems: 'center',
     marginBottom: 4,
-    marginLeft: 100,
+    paddingHorizontal: 8,
+  },
+  headerIconsSpacer: {
+    flex: 1,
+    paddingRight: 4,
   },
   headerIconText: {
+    width: 30,
+    textAlign: 'center',
     fontSize: 18,
   },
   rankingRow: {

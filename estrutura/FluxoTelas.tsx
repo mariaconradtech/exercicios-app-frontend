@@ -52,7 +52,7 @@ function calcularDuracaoSegundos(itens: TreinoExercicioDTO[]): number {
 
 export default function FluxoTelas() {
   const [etapa, setEtapa] = React.useState<Etapa>('login');
-  const [abaAtiva, setAbaAtiva] = React.useState<Aba>('treino');
+  const [abaAtiva, setAbaAtiva] = React.useState<Aba>('inicio');
   const [screenIndex, setScreenIndex] = React.useState<TrainingStep>('intro');
   const [isLoggingIn, setIsLoggingIn] = React.useState(false);
   const [isResettingPassword, setIsResettingPassword] = React.useState(false);
@@ -99,7 +99,7 @@ export default function FluxoTelas() {
 
   const handleIniciarTreinoPelaHome = () => {
     setAbaAtiva('treino');
-    setScreenIndex('execucao');
+    setScreenIndex('intro');
   };
 
   const handleBackPress = () => {
@@ -129,6 +129,7 @@ export default function FluxoTelas() {
       await enviarFeedback(sessaoId, rating);
       setFeedbackError(null);
       setScreenIndex('intro');
+      setAbaAtiva('ranking');
     } catch (error) {
       setFeedbackError(
         error instanceof Error ? error.message : 'Não foi possível salvar sua avaliação.',
