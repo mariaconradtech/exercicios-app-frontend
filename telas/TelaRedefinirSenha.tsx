@@ -118,7 +118,7 @@ export default function TelaRedefinirSenha({
               secureTextEntry={!confirmarSenhaVisivel}
             />
             <Pressable onPress={() => setConfirmarSenhaVisivel((atual) => !atual)} hitSlop={10}>
-              <IconeOlho visivel={!confirmarSenhaVisivel} />
+              <IconeOlho visivel={confirmarSenhaVisivel} />
             </Pressable>
           </View>
         </View>

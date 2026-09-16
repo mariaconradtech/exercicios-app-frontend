@@ -19,7 +19,7 @@ export type FaseTreino = 'INICIANTE' | 'INTERMEDIARIO' | 'AVANCADO';
 export interface TreinoDetalhadoDTO {
   id: number;
   nome: string;
-  descricao?: string | null;
+  instrucao: string;
   fase?: FaseTreino;
   nivel?: number;
   itens: TreinoExercicioDTO[];
