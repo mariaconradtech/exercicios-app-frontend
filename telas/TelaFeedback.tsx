@@ -1,5 +1,13 @@
 import React from 'react';
-import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import {
+  Image,
+  PanResponder,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+  type LayoutChangeEvent,
+} from 'react-native';
 
 import type { FaseTreino } from '../types/treino';
 
@@ -16,35 +24,28 @@ type TelaFeedbackProps = {
 };
 
 const legendaPorNota: Record<number, string> = {
-  0: 'Extremamente Fácil',
+  0: 'Muito Fácil',
   2: 'Fácil',
-  4: 'Um Pouco Fácil',
-  6: 'Um Pouco Difícil',
+  6: 'Um pouco difícil',
   8: 'Difícil',
-  10: 'Extremamente Difícil',
+  10: 'Muito difícil',
 };
 
-const avatarPorNota: Record<number, ReturnType<typeof require>> = {
-  0: require('../assets/bonecos/boneco-1.png'),
-  3: require('../assets/bonecos/boneco-2.png'),
-  7: require('../assets/bonecos/boneco-3.png'),
-  10: require('../assets/bonecos/boneco-4.png'),
+const avatarPorNota: Partial<Record<number, ReturnType<typeof require>>> = {
+  0: require('../assets/bonecos/boneco-1.jpeg'),
+  3: require('../assets/bonecos/boneco-2.jpeg'),
+  7: require('../assets/bonecos/boneco-3.jpeg'),
+  10: require('../assets/bonecos/boneco-4.jpeg'),
 };
 
 const tamanhoAvatarPorNota: Record<number, { width: number; height: number }> = {
-  0: { width: 40, height: 40 },
-  3: { width: 44, height: 48 },
-  7: { width: 58, height: 63 },
-  10: { width: 70, height: 76 },
+  0: { width: 94, height: 108 },
+  3: { width: 112, height: 108 },
+  7: { width: 140, height: 112 },
+  10: { width: 148, height: 116 },
 };
 
-const notas = Array.from({ length: 11 }, (_, i) => i);
-const POSICAO_ESCALA = {
-  inicioX: 8,
-  fimX: 98,
-  inicioY: 18,
-  fimY: 68,
-};
+const notas = Array.from({ length: 11 }, (_, i) => 10 - i);
 
 export default function TelaFeedback({
   onSubmit,
@@ -57,74 +58,109 @@ export default function TelaFeedback({
   quantidadeExercicios,
   duracaoTotalSegundos,
 }: TelaFeedbackProps) {
-  const [selectedRating, setSelectedRating] = React.useState(0);
+  const [selectedRating, setSelectedRating] = React.useState<number | null>(null);
+  const [escalaHeight, setEscalaHeight] = React.useState(0);
+  const isRatingActive = selectedRating !== null;
 
   const handleSelectRating = (rating: number) => {
     setSelectedRating(rating);
   };
 
+  const handleEscalaLayout = (event: LayoutChangeEvent) => {
+    setEscalaHeight(event.nativeEvent.layout.height);
+  };
+
+  const handleSliderMove = React.useCallback(
+    (locationY: number) => {
+      if (escalaHeight <= 0) {
+        return;
+      }
+
+      const clampedY = Math.min(Math.max(locationY, 0), escalaHeight);
+      const nextRating = Math.round(((escalaHeight - clampedY) / escalaHeight) * 10);
+      setSelectedRating(nextRating);
+    },
+    [escalaHeight],
+  );
+
+  const sliderPanResponder = React.useMemo(
+    () =>
+      PanResponder.create({
+        onStartShouldSetPanResponder: () => true,
+        onMoveShouldSetPanResponder: () => true,
+        onPanResponderGrant: (event) => {
+          handleSliderMove(event.nativeEvent.locationY);
+        },
+        onPanResponderMove: (event) => {
+          handleSliderMove(event.nativeEvent.locationY);
+        },
+      }),
+    [handleSliderMove],
+  );
+
   return (
     <View style={styles.feedbackCard}>
       <View style={styles.content}>
-        <Pressable onPress={onBackPress} style={styles.backButton} hitSlop={10}>
-          <Text style={styles.backArrow}>←</Text>
-        </Pressable>
         <Text style={styles.title}>Como foi o treino?</Text>
-        <Text style={styles.subtitle}>Avalie o quão intenso esse treino foi para você</Text>
+        <Text style={styles.subtitle}>
+          Avalie o quão intenso esse treino foi para você.
+        </Text>
 
-        <View style={styles.escalaWrap}>
-          <View style={styles.linhaDiagonal} />
-
-           {notas.map((nota) => {
+        <View
+          style={styles.escalaWrap}
+          onLayout={handleEscalaLayout}
+          {...sliderPanResponder.panHandlers}
+        >
+          <View style={styles.linhaVertical} />
+          {Object.entries(avatarPorNota).map(([nota, source]) => (
+            <Image
+              key={nota}
+              source={source}
+              resizeMode="contain"
+              style={[
+                styles.avatar,
+                tamanhoAvatarPorNota[Number(nota)],
+                { top: `${((10 - Number(nota)) / 10) * 100 - 4}%` },
+              ]}
+            />
+          ))}
+          <View style={styles.notas}>
+            {notas.map((nota) => {
               const isSelected = nota === selectedRating;
-              const avatarSource = avatarPorNota[nota];
-              const tamanhoAvatar = tamanhoAvatarPorNota[nota];
-              const proporcao = nota / 10;
-              const esquerda = POSICAO_ESCALA.inicioX +
-                (POSICAO_ESCALA.fimX - POSICAO_ESCALA.inicioX) * proporcao;
-              const base = POSICAO_ESCALA.inicioY +
-                (POSICAO_ESCALA.fimY - POSICAO_ESCALA.inicioY) * proporcao;
-
               return (
-                <View
+                <Pressable
                   key={nota}
-                  style={[styles.degrau, { left: `${esquerda}%`, bottom: `${base}%` }]}
+                  onPress={() => handleSelectRating(nota)}
+                  hitSlop={8}
+                  style={styles.notaLinha}
                 >
-                  <View style={styles.avatarSlot}>
-                    {avatarSource ? (
-                      <Image source={avatarSource} style={tamanhoAvatar} resizeMode="contain" />
-                    ) : null}
-                  </View>
-
-                  <Pressable
-                    onPress={() => handleSelectRating(nota)}
-                    hitSlop={8}
-                    style={styles.notaPressable}
-                  >
-                    <Text style={[styles.notaTexto, isSelected && styles.notaTextoAtiva]}>
-                      {nota}
-                    </Text>
-                  </Pressable>
-                </View>
+                  <View style={styles.bullet} />
+                  <Text style={[styles.notaTexto, isSelected && styles.notaTextoAtiva]}>
+                    {nota}
+                    {legendaPorNota[nota] ? ` - ${legendaPorNota[nota]}` : ''}
+                  </Text>
+                </Pressable>
               );
             })}
+          </View>
+          <View style={[styles.seletor, { bottom: `${((selectedRating ?? 0) / 10) * 100}%` }]} />
         </View>
-
-        <Text style={styles.legendaSelecionada}>
-          {legendaPorNota[selectedRating] ?? `Nota ${selectedRating}`}
-        </Text>
 
         {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
 
         <Pressable
-          style={[styles.submitButton, (!onSubmit || isSubmitting) && styles.submitButtonDisabled]}
+          style={[
+            styles.submitButton,
+            (!onSubmit || isSubmitting || !isRatingActive) && styles.submitButtonDisabled,
+            isRatingActive && !isSubmitting && styles.submitButtonEnabled,
+          ]}
           onPress={() => {
-            if (!onSubmit || isSubmitting) {
+            if (!onSubmit || isSubmitting || selectedRating === null) {
               return;
             }
             void onSubmit(selectedRating);
           }}
-          disabled={!onSubmit || isSubmitting}
+          disabled={!onSubmit || isSubmitting || !isRatingActive}
         >
           <Text style={styles.submitButtonText}>
             {isSubmitting ? 'Salvando...' : 'Enviar Avaliação'}
@@ -139,124 +175,112 @@ const styles = StyleSheet.create({
   feedbackCard: {
     width: '100%',
     maxWidth: 390,
-    minHeight: 720,
-    borderRadius: 22,
+    flex: 1,
     backgroundColor: '#ffffff',
-    overflow: 'hidden',
-    shadowColor: '#121826',
-    shadowOpacity: 0.12,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 10 },
-    elevation: 6,
-  },
-  backButton: {
-    alignSelf: 'flex-start',
-    paddingRight: 12,
-    paddingVertical: 2,
-    marginBottom: 4,
-  },
-  backArrow: {
-    color: '#20222b',
-    fontSize: 28,
-    lineHeight: 30,
-    fontWeight: '700',
   },
   content: {
     flex: 1,
-    paddingHorizontal: 18,
-    paddingTop: 18,
+    paddingHorizontal: 24,
+    paddingTop: 22,
     paddingBottom: 20,
   },
   title: {
-    fontSize: 26,
-    lineHeight: 32,
+    fontSize: 25,
+    lineHeight: 31,
     fontWeight: '800',
     color: '#20222b',
-    marginBottom: 6,
+    marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
-    lineHeight: 22,
+    lineHeight: 24,
     color: '#6d7482',
-    marginBottom: 18,
+    marginBottom: 14,
   },
   escalaWrap: {
     flex: 1,
-    minHeight: 360,
+    minHeight: 270,
     position: 'relative',
-    marginTop: 8,
-    marginBottom: 20,
-    paddingBottom: 28,
+    marginBottom: 24,
+    marginTop: 24,
   },
-  linhaDiagonal: {
+  linhaVertical: {
     position: 'absolute',
-    bottom: '43%',
-    left: '-5%',
-    width: '116%',
-    height: 6,
+    top: 0,
+    bottom: 0,
+    left: '44%',
+    width: 12,
     borderRadius: 99,
-    backgroundColor: '#1d2433',
-    transform: [{ rotate: '-37deg' }],
+    backgroundColor: '#e2e4e9',
     zIndex: 0,
   },
-  degrau: {
+  avatar: {
     position: 'absolute',
-    width: 70,
-    height: 110,
-    alignItems: 'center',
-    transform: [{ translateX: -35 }, { translateY: 55 }],
+    left: 0,
     zIndex: 1,
   },
-  avatarSlot: {
+  notas: {
     position: 'absolute',
-    top: -18,
-    width: 70,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: '48%',
+    justifyContent: 'space-between',
     zIndex: 1,
   },
-  notaPressable: {
-    position: 'absolute',
-    top: 66,
-    paddingVertical: 6,
-    paddingHorizontal: 5,
-    zIndex: 1,
+  notaLinha: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  bullet: {
+    width: 6,
+    height: 6,
+    marginRight: 12,
+    borderRadius: 3,
+    backgroundColor: '#c8c6df',
   },
   notaTexto: {
     fontSize: 18,
-    lineHeight: 24,
-    fontWeight: '800',
+    lineHeight: 22,
     color: '#20222b',
   },
   notaTextoAtiva: {
-    color: '#4467f2',
-    fontSize: 26,
-    lineHeight: 30,
-  },
-  legendaSelecionada: {
-    fontSize: 17,
-    lineHeight: 23,
     fontWeight: '700',
-    color: '#4467f2',
-    textAlign: 'center',
-    marginTop: 8,
-    marginBottom: 16,
+  },
+  seletor: {
+    position: 'absolute',
+    left: '44%',
+    width: 28,
+    height: 28,
+    marginLeft: -8,
+    marginBottom: -14,
+    borderRadius: 14,
+    backgroundColor: '#3261e8',
+    zIndex: 2,
   },
   errorText: {
     fontSize: 13,
     lineHeight: 18,
     color: '#e5484d',
     textAlign: 'center',
-    marginBottom: 10,
+    marginBottom: 8,
   },
   submitButton: {
-    height: 52,
-    borderRadius: 26,
+    height: 48,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#4467f2',
-    marginTop: 12,
+    backgroundColor: '#91a9ec',
+    marginTop: 8,
+  },
+  submitButtonEnabled: {
+    backgroundColor: '#2e5be6',
+    shadowColor: '#2e5be6',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 4,
   },
   submitButtonDisabled: {
     opacity: 0.6,

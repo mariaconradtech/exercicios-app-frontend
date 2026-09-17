@@ -30,11 +30,20 @@ export interface PercepcaoEsforcoDTO {
   valor: number;
 }
 
+export interface ResumoGamificacaoDTO {
+  faseAtual: string;
+  posicaoRanking: number;
+  totalParticipantesFase: number;
+  sessoesSemanaAtual: number;
+  mensagens: string[];
+}
+
 export interface EngajamentoDTO {
   participanteId: number;
   categoriaAtual: CategoriaEngajamento;
   mudouCategoria: boolean;
   mensagemCelebracao: string;
+  resumoGamificacao?: ResumoGamificacaoDTO;
   podio: PodioItemDTO[];
   ranking: RankingItemDTO[];
   proximoNivel: ProximoNivelDTO;

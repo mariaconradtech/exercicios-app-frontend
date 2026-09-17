@@ -19,7 +19,18 @@ interface TelaEngajamentoProps {
   participanteId: number;
 }
 
-const medalhasCabecalho = ['🥉', '⭐', '🥉', '🏆'];
+const medalhasCabecalho = ['🪙', '⭐', '🏅', '🏆'];
+
+const mensagensSemConquista = [
+  'Complete seu próximo treino para somar pontos, ganhar bônus e avançar no ranking da sua fase.',
+];
+
+const explicacoesPremios = [
+  { icone: '🪙', titulo: 'Pontos', texto: 'Somados a cada sessão concluída e aos bônus da semana.' },
+  { icone: '⭐', titulo: 'Estrelas', texto: 'Conquistadas pela consistência nos treinos.' },
+  { icone: '🏅', titulo: 'Medalhas', texto: 'Ganhas quando você completa as sessões da semana.' },
+  { icone: '🏆', titulo: 'Troféus', texto: 'Recebidos ao completar os níveis de treino.' },
+];
 
 function calcularPontos(
   valores: Array<{ data: string; valor: number }> | undefined,
@@ -126,6 +137,10 @@ export default function TelaEngajamento({ participanteId }: TelaEngajamentoProps
   const chartHeight = 110;
   const pontos = calcularPontos(dados.percepcaoEsforco ?? [], chartWidth, chartHeight);
   const progresso = Math.min(100, Math.max(0, dados.proximoNivel.progressoPercentual));
+  const resumo = dados.resumoGamificacao;
+  const mensagensGamificacao =
+    resumo && resumo.mensagens.length > 0 ? resumo.mensagens : mensagensSemConquista;
+  const posicaoRanking = resumo?.posicaoRanking && resumo.posicaoRanking > 0 ? resumo.posicaoRanking : null;
 
   return (
     <View style={styles.page}>
@@ -140,8 +155,43 @@ export default function TelaEngajamento({ participanteId }: TelaEngajamentoProps
           <Text style={styles.heroText}>{dados.mensagemCelebracao}</Text>
         </View>
 
+        <View style={styles.resumoGrid}>
+          <View style={styles.resumoCard}>
+            <Text style={styles.resumoLabel}>Fase</Text>
+            <Text style={styles.resumoValor}>
+              {resumo?.faseAtual ?? dados.proximoNivel.nivelAtual}
+            </Text>
+          </View>
+          <View style={styles.resumoCard}>
+            <Text style={styles.resumoLabel}>Ranking</Text>
+            <Text style={styles.resumoValor}>
+              {posicaoRanking ? `${posicaoRanking}º` : '-'}
+            </Text>
+            <Text style={styles.resumoHint}>
+              {resumo ? `de ${resumo.totalParticipantesFase}` : 'da sua fase'}
+            </Text>
+          </View>
+          <View style={styles.resumoCard}>
+            <Text style={styles.resumoLabel}>Semana</Text>
+            <Text style={styles.resumoValor}>{resumo?.sessoesSemanaAtual ?? 0}/3</Text>
+            <Text style={styles.resumoHint}>treinos</Text>
+          </View>
+        </View>
+
+        <View style={styles.gamificacaoCard}>
+          <Text style={styles.sectionTitle}>Conquistas da gamificação</Text>
+          {mensagensGamificacao.map((mensagem, index) => (
+            <View key={`${mensagem}-${index}`} style={styles.mensagemGamificacaoRow}>
+              <Text style={styles.mensagemGamificacaoIcon}>✨</Text>
+              <Text style={styles.mensagemGamificacaoTexto}>{mensagem}</Text>
+            </View>
+          ))}
+        </View>
+
         <View style={styles.rankingSection}>
+          <Text style={styles.sectionTitle}>Ranking da sua fase</Text>
           <View style={styles.headerIcons}>
+            <View style={styles.headerIconsSpacer} />
             {medalhasCabecalho.map((item, index) => (
               <Text key={`${item}-${index}`} style={styles.headerIconText}>
                 {item}
@@ -158,6 +208,19 @@ export default function TelaEngajamento({ participanteId }: TelaEngajamentoProps
               <Text style={styles.valorCol}>{linha.estrelas}</Text>
               <Text style={styles.valorCol}>{linha.medalhas}</Text>
               <Text style={styles.valorCol}>{linha.trofeus}</Text>
+            </View>
+          ))}
+        </View>
+
+        <View style={styles.premiosCard}>
+          <Text style={styles.sectionTitle}>Como ganhar prêmios</Text>
+          {explicacoesPremios.map((item) => (
+            <View key={item.titulo} style={styles.premioRow}>
+              <Text style={styles.premioIcon}>{item.icone}</Text>
+              <View style={styles.premioTextoWrap}>
+                <Text style={styles.premioTitulo}>{item.titulo}</Text>
+                <Text style={styles.premioTexto}>{item.texto}</Text>
+              </View>
             </View>
           ))}
         </View>
@@ -347,6 +410,71 @@ const styles = StyleSheet.create({
     color: '#2a3342',
     fontWeight: '700',
   },
+  resumoGrid: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  resumoCard: {
+    flex: 1,
+    minHeight: 74,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#e1e7fb',
+    backgroundColor: '#ffffff',
+    paddingHorizontal: 10,
+    paddingVertical: 9,
+    justifyContent: 'center',
+  },
+  resumoLabel: {
+    color: '#727b91',
+    fontSize: 11,
+    lineHeight: 14,
+    marginBottom: 2,
+  },
+  resumoValor: {
+    color: '#20283b',
+    fontSize: 18,
+    lineHeight: 22,
+    fontWeight: '800',
+  },
+  resumoHint: {
+    color: '#6b7388',
+    fontSize: 11,
+    lineHeight: 14,
+    marginTop: 1,
+  },
+  gamificacaoCard: {
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#dce5ff',
+    backgroundColor: '#f6f8ff',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    gap: 7,
+  },
+  sectionTitle: {
+    color: '#20283b',
+    fontSize: 14,
+    lineHeight: 18,
+    fontWeight: '800',
+    marginBottom: 2,
+  },
+  mensagemGamificacaoRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+  },
+  mensagemGamificacaoIcon: {
+    fontSize: 15,
+    lineHeight: 20,
+  },
+  mensagemGamificacaoTexto: {
+    flex: 1,
+    color: '#3b4560',
+    fontSize: 12,
+    lineHeight: 17,
+    fontWeight: '600',
+  },
   rankingSection: {
     backgroundColor: '#ffffff',
     borderRadius: 12,
@@ -358,11 +486,17 @@ const styles = StyleSheet.create({
   },
   headerIcons: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
+    alignItems: 'center',
     marginBottom: 4,
-    marginLeft: 100,
+    paddingHorizontal: 8,
+  },
+  headerIconsSpacer: {
+    flex: 1,
+    paddingRight: 4,
   },
   headerIconText: {
+    width: 30,
+    textAlign: 'center',
     fontSize: 18,
   },
   rankingRow: {
@@ -392,6 +526,40 @@ const styles = StyleSheet.create({
     color: '#212e80',
     fontStyle: 'italic',
     fontWeight: '700',
+  },
+  premiosCard: {
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#e6eaf4',
+    backgroundColor: '#ffffff',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    gap: 8,
+  },
+  premioRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 9,
+  },
+  premioIcon: {
+    width: 24,
+    fontSize: 18,
+    lineHeight: 22,
+    textAlign: 'center',
+  },
+  premioTextoWrap: {
+    flex: 1,
+  },
+  premioTitulo: {
+    color: '#20283b',
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: '800',
+  },
+  premioTexto: {
+    color: '#626b81',
+    fontSize: 12,
+    lineHeight: 16,
   },
   nivelCard: {
     borderRadius: 14,
