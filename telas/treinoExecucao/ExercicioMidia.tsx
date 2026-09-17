@@ -5,6 +5,8 @@ import { WebView } from 'react-native-webview';
 
 type ExercicioMidiaProps = {
   videoUrl?: string;
+  duracaoTotalSegundos?: number;
+  isPaused?: boolean;
 };
 
 const YOUTUBE_HOSTS = [
@@ -65,14 +67,41 @@ function getYouTubeEmbedUrl(url: string): string {
   }
 }
 
-export default function ExercicioMidia({ videoUrl }: ExercicioMidiaProps) {
+export default function ExercicioMidia({
+  videoUrl,
+  duracaoTotalSegundos,
+  isPaused = false,
+}: ExercicioMidiaProps) {
   const [erroVideo, setErroVideo] = React.useState(false);
+  const nativeVideoRef = React.useRef<any>(null);
+  const webVideoRef = React.useRef<any>(null);
   const isYouTube = videoUrl ? isYouTubeUrl(videoUrl) : false;
+  const shouldLoopVideo =
+    typeof duracaoTotalSegundos === 'number' ? duracaoTotalSegundos > 0 && !isPaused : !isPaused;
   const sourceUri = videoUrl
     ? isYouTube
       ? getYouTubeEmbedUrl(videoUrl)
       : normalizeUrl(videoUrl)
     : undefined;
+
+  React.useEffect(() => {
+    if (!videoUrl) {
+      return;
+    }
+
+    if (isPaused) {
+      nativeVideoRef.current?.pauseAsync?.().catch(() => {});
+      if (webVideoRef.current) {
+        webVideoRef.current.pause?.();
+      }
+      return;
+    }
+
+    nativeVideoRef.current?.playAsync?.().catch(() => {});
+    if (webVideoRef.current) {
+      webVideoRef.current.play?.().catch(() => {});
+    }
+  }, [isPaused, videoUrl]);
 
   return (
     <View style={styles.container}>
@@ -100,21 +129,25 @@ export default function ExercicioMidia({ videoUrl }: ExercicioMidiaProps) {
         ) : (
           Platform.OS === 'web' ? (
             <video
+              ref={webVideoRef}
               controls
               playsInline
               preload="metadata"
+              autoPlay={!isPaused}
+              loop={shouldLoopVideo}
               src={sourceUri}
               style={styles.video}
               onError={() => setErroVideo(true)}
             />
           ) : (
             <Video
+              ref={nativeVideoRef}
               source={{ uri: sourceUri }}
               style={styles.video}
               useNativeControls
               resizeMode={ResizeMode.CONTAIN}
-              shouldPlay={false}
-              isLooping={false}
+              shouldPlay={!isPaused}
+              isLooping={shouldLoopVideo}
               onError={() => setErroVideo(true)}
             />
           )

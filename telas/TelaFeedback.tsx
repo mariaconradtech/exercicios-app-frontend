@@ -32,10 +32,10 @@ const legendaPorNota: Record<number, string> = {
 };
 
 const avatarPorNota: Partial<Record<number, ReturnType<typeof require>>> = {
-  0: require('../assets/bonecos/boneco-1.png'),
-  3: require('../assets/bonecos/boneco-2.png'),
-  7: require('../assets/bonecos/boneco-3.png'),
-  10: require('../assets/bonecos/boneco-4.png'),
+  0: require('../assets/bonecos/boneco-1.jpeg'),
+  3: require('../assets/bonecos/boneco-2.jpeg'),
+  7: require('../assets/bonecos/boneco-3.jpeg'),
+  10: require('../assets/bonecos/boneco-4.jpeg'),
 };
 
 const tamanhoAvatarPorNota: Record<number, { width: number; height: number }> = {
@@ -58,8 +58,9 @@ export default function TelaFeedback({
   quantidadeExercicios,
   duracaoTotalSegundos,
 }: TelaFeedbackProps) {
-  const [selectedRating, setSelectedRating] = React.useState(0);
+  const [selectedRating, setSelectedRating] = React.useState<number | null>(null);
   const [escalaHeight, setEscalaHeight] = React.useState(0);
+  const isRatingActive = selectedRating !== null;
 
   const handleSelectRating = (rating: number) => {
     setSelectedRating(rating);
@@ -142,20 +143,24 @@ export default function TelaFeedback({
               );
             })}
           </View>
-          <View style={[styles.seletor, { bottom: `${(selectedRating / 10) * 100}%` }]} />
+          <View style={[styles.seletor, { bottom: `${((selectedRating ?? 0) / 10) * 100}%` }]} />
         </View>
 
         {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
 
         <Pressable
-          style={[styles.submitButton, (!onSubmit || isSubmitting) && styles.submitButtonDisabled]}
+          style={[
+            styles.submitButton,
+            (!onSubmit || isSubmitting || !isRatingActive) && styles.submitButtonDisabled,
+            isRatingActive && !isSubmitting && styles.submitButtonEnabled,
+          ]}
           onPress={() => {
-            if (!onSubmit || isSubmitting) {
+            if (!onSubmit || isSubmitting || selectedRating === null) {
               return;
             }
             void onSubmit(selectedRating);
           }}
-          disabled={!onSubmit || isSubmitting}
+          disabled={!onSubmit || isSubmitting || !isRatingActive}
         >
           <Text style={styles.submitButtonText}>
             {isSubmitting ? 'Salvando...' : 'Enviar Avaliação'}
@@ -194,9 +199,10 @@ const styles = StyleSheet.create({
   },
   escalaWrap: {
     flex: 1,
-    minHeight: 470,
+    minHeight: 270,
     position: 'relative',
-    marginBottom: 14,
+    marginBottom: 24,
+    marginTop: 24,
   },
   linhaVertical: {
     position: 'absolute',
@@ -267,6 +273,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: '#91a9ec',
     marginTop: 8,
+  },
+  submitButtonEnabled: {
+    backgroundColor: '#2e5be6',
+    shadowColor: '#2e5be6',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 4,
   },
   submitButtonDisabled: {
     opacity: 0.6,

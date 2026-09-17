@@ -110,7 +110,11 @@ export default function TelaTreinoExecucao({
           nome={exercicioAtual.exercicio.nome}
           onBackPress={pedirFinalizar}
         />
-        <ExercicioMidia videoUrl={exercicioAtual.exercicio.videoUrl} />
+        <ExercicioMidia
+          videoUrl={exercicioAtual.exercicio.videoUrl}
+          duracaoTotalSegundos={exercicioAtual.duracaoEstimadaSegundos}
+          isPaused={pausado}
+        />
         <View style={styles.timerWrap}>
           <TimerExecucao
             segundosRestantes={remaining}
