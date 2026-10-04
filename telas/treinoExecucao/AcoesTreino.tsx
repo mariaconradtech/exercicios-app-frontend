@@ -26,7 +26,7 @@ export default function AcoesTreino({ pausado, onTogglePause, onFinalizar }: Aco
 const styles = StyleSheet.create({
   botaoPausar: {
     marginHorizontal: 20,
-    marginTop: 20,
+    marginTop: 36,
     height: 46,
     borderRadius: 12,
     borderWidth: 1,

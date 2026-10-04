@@ -32,18 +32,25 @@ import type { RegistroExecucao, TreinoDetalhadoDTO, TreinoExercicioDTO } from '.
 
 type Etapa = 'login' | 'redefinirSenha' | 'escolhaAvatar' | 'app';
 type TrainingStep = 'intro' | 'execucao' | 'feedback';
-type Aba = 'inicio' | 'historico' | 'treino' | 'ranking' | 'perfil';
+type Aba = 'inicio' | 'treino' | 'ranking' | 'perfil';
 
 const itensAba: Array<{ key: Aba; icon: string; label: string }> = [
-  { key: 'inicio', icon: '⌂', label: 'Início' },
-  { key: 'historico', icon: '□', label: 'Histórico' },
-  { key: 'treino', icon: '▣', label: 'Treino' },
+  { key: 'inicio', icon: '🏠', label: 'Início' },
+  { key: 'treino', icon: '🏋️', label: 'Treino' },
   { key: 'ranking', icon: '🏆', label: 'Ranking' },
-  { key: 'perfil', icon: '◌', label: 'Perfil' },
+  { key: 'perfil', icon: '👤', label: 'Perfil' },
 ];
 
-function calcularDuracaoSegundos(itens: TreinoExercicioDTO[]): number {
-  return itens.reduce((total, item) => {
+function calcularDuracaoSegundos(treino: TreinoDetalhadoDTO | null): number {
+  if (!treino) {
+    return 0;
+  }
+
+  if (typeof treino.duracaoEstimadaMinutos === 'number') {
+    return Math.max(0, treino.duracaoEstimadaMinutos * 60);
+  }
+
+  return treino.itens.reduce((total, item) => {
     const execucao = item.duracaoEstimadaSegundos * item.series;
     const descanso = item.descansoSegundos * Math.max(0, item.series - 1);
     return total + execucao + descanso;
@@ -52,7 +59,7 @@ function calcularDuracaoSegundos(itens: TreinoExercicioDTO[]): number {
 
 export default function FluxoTelas() {
   const [etapa, setEtapa] = React.useState<Etapa>('login');
-  const [abaAtiva, setAbaAtiva] = React.useState<Aba>('treino');
+  const [abaAtiva, setAbaAtiva] = React.useState<Aba>('inicio');
   const [screenIndex, setScreenIndex] = React.useState<TrainingStep>('intro');
   const [isLoggingIn, setIsLoggingIn] = React.useState(false);
   const [isResettingPassword, setIsResettingPassword] = React.useState(false);
@@ -79,7 +86,7 @@ export default function FluxoTelas() {
   }, [treinoParaRender]);
 
   const duracaoTotalTreinoSegundos = React.useMemo(
-    () => calcularDuracaoSegundos(treinoParaRender.itens),
+    () => calcularDuracaoSegundos(treinoParaRender),
     [treinoParaRender],
   );
 
@@ -93,13 +100,13 @@ export default function FluxoTelas() {
       fase: treino.fase,
       nivel: treino.nivel,
       quantidadeExercicios: treino.itens.length,
-      duracaoTotalSegundos: calcularDuracaoSegundos(treino.itens),
+      duracaoTotalSegundos: calcularDuracaoSegundos(treino),
     };
   }, [treino]);
 
   const handleIniciarTreinoPelaHome = () => {
     setAbaAtiva('treino');
-    setScreenIndex('execucao');
+    setScreenIndex('intro');
   };
 
   const handleBackPress = () => {
@@ -129,6 +136,7 @@ export default function FluxoTelas() {
       await enviarFeedback(sessaoId, rating);
       setFeedbackError(null);
       setScreenIndex('intro');
+      setAbaAtiva('ranking');
     } catch (error) {
       setFeedbackError(
         error instanceof Error ? error.message : 'Não foi possível salvar sua avaliação.',
@@ -359,8 +367,6 @@ export default function FluxoTelas() {
             {abaAtiva === 'treino' && renderTreino()}
             {abaAtiva === 'inicio' && !participante &&
               renderPlaceholder('Início', 'Faça login para visualizar seu início.')}
-            {abaAtiva === 'historico' &&
-              renderPlaceholder('Histórico', 'Histórico de sessões em construção.')}
             {abaAtiva === 'perfil' && !participante &&
               renderPlaceholder('Perfil', 'Faça login para visualizar seu perfil.')}
             {participante && (

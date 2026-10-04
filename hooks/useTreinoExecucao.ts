@@ -21,6 +21,7 @@ interface UseTreinoExecucaoResult {
   registro: RegistroExecucao;
   sessaoId: number | null;
   isConfirmModalOpen: boolean;
+  percentualConcluido: number;
   pausar: () => void;
   retomar: () => void;
   pedirFinalizar: () => void;
@@ -215,6 +216,7 @@ export function useTreinoExecucao(
     registro,
     sessaoId,
     isConfirmModalOpen,
+    percentualConcluido: calcularPercentual(registro.itens, treino),
     pausar,
     retomar,
     pedirFinalizar,
