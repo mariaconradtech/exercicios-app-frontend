@@ -32,10 +32,10 @@ const legendaPorNota: Record<number, string> = {
 };
 
 const avatarPorNota: Partial<Record<number, ReturnType<typeof require>>> = {
-  0: require('../assets/bonecos/boneco-1.jpeg'),
-  3: require('../assets/bonecos/boneco-2.jpeg'),
-  7: require('../assets/bonecos/boneco-3.jpeg'),
-  10: require('../assets/bonecos/boneco-4.jpeg'),
+  0: require('../assets/bonecos/Esforco_Barra_01_Facil.png'),
+  3: require('../assets/bonecos/Esforco_Barra_02_Medio.png'),
+  7: require('../assets/bonecos/Esforco_Barra_03_Dificil.png'),
+  10: require('../assets/bonecos/Esforco_Barra_04_MuitoDificil.png'),
 };
 
 const tamanhoAvatarPorNota: Record<number, { width: number; height: number }> = {
