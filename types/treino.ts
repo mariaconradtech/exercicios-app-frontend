@@ -10,6 +10,7 @@ export interface TreinoExercicioDTO {
   ordem: number;
   series: number;
   descansoSegundos: number;
+  descansoTransicaoSegundos: number;
   duracaoEstimadaSegundos: number;
   exercicio: ExercicioDTO;
 }
