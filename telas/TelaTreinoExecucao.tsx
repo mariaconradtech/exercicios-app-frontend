@@ -77,13 +77,16 @@ export default function TelaTreinoExecucao({
     const proximaSerieExibida = ultimaSerieDoExercicio ? 1 : serieAtual + 1;
     const proximoItemExibido = ultimaSerieDoExercicio ? proximoExercicio : exercicioAtual;
     const nomeProximoExibido = proximoItemExibido?.exercicio.nome ?? exercicioAtual.exercicio.nome;
+    const duracaoDescansoExibida = ultimaSerieDoExercicio
+      ? exercicioAtual.descansoTransicaoSegundos
+      : exercicioAtual.descansoSegundos;
 
     return (
       <SafeAreaView style={styles.container}>
         <StatusBar style="dark" />
         <TelaDescanso
           segundosRestantes={remaining}
-          duracaoTotalSegundos={exercicioAtual.descansoSegundos}
+          duracaoTotalSegundos={duracaoDescansoExibida}
           proximaSerie={proximaSerieExibida}
           nomeProximoExercicio={nomeProximoExibido}
           pausado={pausado}

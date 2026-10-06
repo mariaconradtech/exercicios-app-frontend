@@ -12,6 +12,7 @@ export const treinoMock: TreinoDetalhadoDTO = {
       ordem: 1,
       series: 3,
       descansoSegundos: 60,
+      descansoTransicaoSegundos: 60,
       duracaoEstimadaSegundos: 45,
       exercicio: {
         id: 1,
@@ -29,6 +30,7 @@ export const treinoMock: TreinoDetalhadoDTO = {
       ordem: 2,
       series: 3,
       descansoSegundos: 60,
+      descansoTransicaoSegundos: 60,
       duracaoEstimadaSegundos: 45,
       exercicio: {
         id: 2,
@@ -46,6 +48,7 @@ export const treinoMock: TreinoDetalhadoDTO = {
       ordem: 3,
       series: 3,
       descansoSegundos: 60,
+      descansoTransicaoSegundos: 60,
       duracaoEstimadaSegundos: 45,
       exercicio: {
         id: 3,
@@ -63,6 +66,7 @@ export const treinoMock: TreinoDetalhadoDTO = {
       ordem: 4,
       series: 3,
       descansoSegundos: 60,
+      descansoTransicaoSegundos: 60,
       duracaoEstimadaSegundos: 45,
       exercicio: {
         id: 4,
@@ -80,6 +84,7 @@ export const treinoMock: TreinoDetalhadoDTO = {
       ordem: 5,
       series: 3,
       descansoSegundos: 60,
+      descansoTransicaoSegundos: 60,
       duracaoEstimadaSegundos: 45,
       exercicio: {
         id: 5,
@@ -97,6 +102,7 @@ export const treinoMock: TreinoDetalhadoDTO = {
       ordem: 6,
       series: 3,
       descansoSegundos: 60,
+      descansoTransicaoSegundos: 60,
       duracaoEstimadaSegundos: 45,
       exercicio: {
         id: 6,

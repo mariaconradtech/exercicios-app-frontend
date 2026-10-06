@@ -116,9 +116,13 @@ export function useTreinoExecucao(
       return;
     }
 
+    const descansoSegundos = ultimaSerieDoExercicio
+      ? itemAtual.descansoTransicaoSegundos
+      : itemAtual.descansoSegundos;
+
     setRegistro((prev) => ({ ...prev, itens: proximosItens }));
     setStatus('DESCANSO');
-    countdown.reset(itemAtual.descansoSegundos);
+    countdown.reset(descansoSegundos);
     countdown.start();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [treino, tempoDecorridoSegundos]);
