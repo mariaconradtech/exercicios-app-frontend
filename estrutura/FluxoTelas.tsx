@@ -8,7 +8,6 @@ import {
   View,
 } from 'react-native';
 
-import { treinoMock } from '../services/treinoMock';
 import {
   buscarPerfilParticipante,
   buscarTreinoAtivoDoParticipante,
@@ -77,17 +76,16 @@ export default function FluxoTelas() {
   const [treinoError, setTreinoError] = React.useState<string | null>(null);
   const [sessaoId, setSessaoId] = React.useState<number | null>(null);
 
-  const treinoParaRender = treino ?? treinoMock;
   const materiaisTreino = React.useMemo(() => {
-    return (treinoParaRender.instrucao ?? '')
+    return (treino?.instrucao ?? '')
       .split(',')
       .map((item) => item.trim())
       .filter(Boolean);
-  }, [treinoParaRender]);
+  }, [treino]);
 
   const duracaoTotalTreinoSegundos = React.useMemo(
-    () => calcularDuracaoSegundos(treinoParaRender),
-    [treinoParaRender],
+    () => calcularDuracaoSegundos(treino),
+    [treino],
   );
 
   const proximoTreinoResumo: ProximoTreinoResumo | null = React.useMemo(() => {
@@ -146,7 +144,17 @@ export default function FluxoTelas() {
     }
   };
 
-  const renderTreino = () => (
+  const renderTreino = () => {
+    if (!treino) {
+      return renderPlaceholder(
+        'Treino',
+        treinoLoading
+          ? 'Carregando treino...'
+          : treinoError ?? 'Nenhum treino disponível no momento.',
+      );
+    }
+
+    return (
     <View style={styles.trainingArea}>
       <View style={styles.screensRow}>
         {screenIndex === 'feedback' ? (
@@ -155,17 +163,17 @@ export default function FluxoTelas() {
             onSubmit={handleFeedbackSubmit}
             isSubmitting={isSubmittingFeedback}
             errorMessage={feedbackError}
-            nomeTreino={treinoParaRender.nome}
-            fase={treinoParaRender.fase}
-            nivel={treinoParaRender.nivel}
-            quantidadeExercicios={treinoParaRender.itens.length}
+            nomeTreino={treino.nome}
+            fase={treino.fase}
+            nivel={treino.nivel}
+            quantidadeExercicios={treino.itens.length}
             duracaoTotalSegundos={duracaoTotalTreinoSegundos}
           />
         ) : screenIndex === 'execucao' ? (
           <View style={styles.phoneBoundary}>
             {participante ? (
               <TelaTreinoExecucao
-                treino={treinoParaRender}
+                treino={treino}
                 participanteId={participante.participanteId}
                 onFinish={handleTreinoFinish}
                 onBackPress={handleBackPress}
@@ -180,10 +188,10 @@ export default function FluxoTelas() {
           <TelaInstrucao
             emoji={avatarGenero === 'MASCULINO' ? '🏋️' : avatarGenero === 'FEMININO' ? '🧘‍♀️' : '🤖'}
             materiais={materiaisTreino}
-            nomeTreino={treinoParaRender.nome}
-            fase={treinoParaRender.fase}
-            nivel={treinoParaRender.nivel}
-            quantidadeExercicios={treinoParaRender.itens.length}
+            nomeTreino={treino.nome}
+            fase={treino.fase}
+            nivel={treino.nivel}
+            quantidadeExercicios={treino.itens.length}
             duracaoTotalSegundos={duracaoTotalTreinoSegundos}
             primaryLabel={treinoLoading ? 'Carregando...' : 'Iniciar treino'}
             primaryVariant="solid"
@@ -193,7 +201,8 @@ export default function FluxoTelas() {
         )}
       </View>
     </View>
-  );
+    );
+  };
 
   const handleLogout = () => {
     setParticipante(null);
