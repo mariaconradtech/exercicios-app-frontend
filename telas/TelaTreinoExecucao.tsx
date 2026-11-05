@@ -11,7 +11,7 @@ import ModalFinalizarTreino from './treinoExecucao/ModalFinalizarTreino';
 import StatsRow from './treinoExecucao/StatsRow';
 import TelaDescanso from './treinoExecucao/TelaDescanso';
 import TimerExecucao from './treinoExecucao/TimerExecucao';
-import { useTreinoExecucao } from '../hooks/useTreinoExecucao';
+import { DESCANSO_INICIAL_SEGUNDOS, useTreinoExecucao } from '../hooks/useTreinoExecucao';
 import type { RegistroExecucao, TreinoDetalhadoDTO } from '../types/treino';
 
 type TelaTreinoExecucaoProps = {
@@ -41,6 +41,7 @@ export default function TelaTreinoExecucao({
     sessaoId,
     isConfirmModalOpen,
     percentualConcluido,
+    descansoInicial,
     pausar,
     retomar,
     pedirFinalizar,
@@ -73,13 +74,15 @@ export default function TelaTreinoExecucao({
   }
 
   if (faseVisivel === 'DESCANSO') {
-    const ultimaSerieDoExercicio = serieAtual >= exercicioAtual.series;
-    const proximaSerieExibida = ultimaSerieDoExercicio ? 1 : serieAtual + 1;
+    const ultimaSerieDoExercicio = !descansoInicial && serieAtual >= exercicioAtual.series;
+    const proximaSerieExibida = descansoInicial || ultimaSerieDoExercicio ? 1 : serieAtual + 1;
     const proximoItemExibido = ultimaSerieDoExercicio ? proximoExercicio : exercicioAtual;
     const nomeProximoExibido = proximoItemExibido?.exercicio.nome ?? exercicioAtual.exercicio.nome;
-    const duracaoDescansoExibida = ultimaSerieDoExercicio
-      ? exercicioAtual.descansoTransicaoSegundos
-      : exercicioAtual.descansoSegundos;
+    const duracaoDescansoExibida = descansoInicial
+      ? DESCANSO_INICIAL_SEGUNDOS
+      : ultimaSerieDoExercicio
+        ? exercicioAtual.descansoTransicaoSegundos
+        : exercicioAtual.descansoSegundos;
 
     return (
       <SafeAreaView style={styles.container}>

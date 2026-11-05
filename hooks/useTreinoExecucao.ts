@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+import { useBipeContagem } from './useBipeContagem';
 import { useCountdown } from './useCountdown';
 import { finalizarSessao, iniciarSessao, registrarProgresso } from '../services/treinoService';
 import {
@@ -22,12 +23,15 @@ interface UseTreinoExecucaoResult {
   sessaoId: number | null;
   isConfirmModalOpen: boolean;
   percentualConcluido: number;
+  descansoInicial: boolean;
   pausar: () => void;
   retomar: () => void;
   pedirFinalizar: () => void;
   confirmarFinalizar: () => void;
   continuarTreino: () => void;
 }
+
+export const DESCANSO_INICIAL_SEGUNDOS = 3;
 
 function totalDeSeries(treino: TreinoDetalhadoDTO): number {
   return treino.itens.reduce((soma, item) => soma + item.series, 0);
@@ -46,7 +50,9 @@ export function useTreinoExecucao(
   treino: TreinoDetalhadoDTO,
   participanteId: number,
 ): UseTreinoExecucaoResult {
-  const [status, setStatus] = useState<StatusTreino>('EXECUTANDO');
+  // O treino começa com um descanso curto antes da primeira série.
+  const [status, setStatus] = useState<StatusTreino>('DESCANSO');
+  const [descansoInicial, setDescansoInicial] = useState(true);
   const [exercicioIndex, setExercicioIndex] = useState(0);
   const [serieAtual, setSerieAtual] = useState(1);
   const [registro, setRegistro] = useState<RegistroExecucao>({ itens: {}, tempoRealizadoSegundos: 0 });
@@ -58,7 +64,9 @@ export function useTreinoExecucao(
 
   const statusRef = useRef(status);
   statusRef.current = status;
-  const statusAnteriorRef = useRef<StatusTreino>('EXECUTANDO');
+  const statusAnteriorRef = useRef<StatusTreino>('DESCANSO');
+  const descansoInicialRef = useRef(descansoInicial);
+  descansoInicialRef.current = descansoInicial;
   const sessaoIdRef = useRef<number | null>(null);
   const inicioRef = useRef<number | null>(null);
   const exercicioIndexRef = useRef(exercicioIndex);
@@ -76,6 +84,16 @@ export function useTreinoExecucao(
   }, []);
 
   const completarDescanso = useCallback(() => {
+    if (descansoInicialRef.current) {
+      inicioRef.current = Date.now();
+      tocarBipe();
+      setDescansoInicial(false);
+      setStatus('EXECUTANDO');
+      countdown.reset(treino.itens[0].duracaoEstimadaSegundos);
+      countdown.start();
+      return;
+    }
+
     const itemAtual = treino.itens[exercicioIndexRef.current];
     const ultimaSerie = serieAtualRef.current >= itemAtual.series;
     const proximoIndex = ultimaSerie ? exercicioIndexRef.current + 1 : exercicioIndexRef.current;
@@ -127,7 +145,7 @@ export function useTreinoExecucao(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [treino, tempoDecorridoSegundos]);
 
-  const countdown = useCountdown(treino.itens[0].duracaoEstimadaSegundos, {
+  const countdown = useCountdown(DESCANSO_INICIAL_SEGUNDOS, {
     onComplete: () => {
       if (statusRef.current === 'EXECUTANDO') {
         completarSerieAtual();
@@ -137,8 +155,13 @@ export function useTreinoExecucao(
     },
   });
 
+  // O descanso inicial não tem contagem sonora; o bipe toca quando a primeira série começa.
+  const { tocarBipe } = useBipeContagem(
+    countdown.remaining,
+    (status === 'EXECUTANDO' || status === 'DESCANSO') && !isConfirmModalOpen && !descansoInicial,
+  );
+
   useEffect(() => {
-    inicioRef.current = Date.now();
     iniciarSessao(treino.id, participanteId)
       .then(({ sessaoId }) => {
         sessaoIdRef.current = sessaoId;
@@ -221,6 +244,7 @@ export function useTreinoExecucao(
     sessaoId,
     isConfirmModalOpen,
     percentualConcluido: calcularPercentual(registro.itens, treino),
+    descansoInicial,
     pausar,
     retomar,
     pedirFinalizar,
