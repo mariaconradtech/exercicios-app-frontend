@@ -1,28 +1,35 @@
-export type CategoriaEngajamento = 'OURO' | 'PRATA' | 'BRONZE';
+export type FaseTreino = 'INICIANTE' | 'INTERMEDIARIO' | 'AVANCADO';
 
-export interface PodioItemDTO {
-  categoria: CategoriaEngajamento;
-  participanteNome: string;
-  nomeAvatar?: string;
-  treinosConcluidos: number;
+export interface SemanaEngajamentoDTO {
+  treinosRealizados: number;
+  meta: number;
+  semanasSeguidasCompletas: number;
+  semanasParaEstrela: number;
 }
 
 export interface RankingItemDTO {
   participanteId: number;
+  posicao: number;
   nome: string;
-  nomeAvatar: string;
-  bronze: number;
+  pontos: number;
   estrelas: number;
   medalhas: number;
   trofeus: number;
+  ehVoce: boolean;
 }
 
-export interface ProximoNivelDTO {
-  nivelAtual: string;
-  proximoNivel: string | null;
-  treinosConcluidos: number;
-  treinosFaltantes: number;
+export interface RankingFaseDTO {
+  itens: RankingItemDTO[];
+  participanteForaDoTopo: RankingItemDTO | null;
+  totalParticipantes: number;
+}
+
+export interface NivelEngajamentoDTO {
+  nivelAtual: number;
+  sessoesRealizadas: number;
+  sessoesNecessarias: number;
   progressoPercentual: number;
+  programaConcluido: boolean;
 }
 
 export interface PercepcaoEsforcoDTO {
@@ -30,22 +37,13 @@ export interface PercepcaoEsforcoDTO {
   valor: number;
 }
 
-export interface ResumoGamificacaoDTO {
-  faseAtual: string;
-  posicaoRanking: number;
-  totalParticipantesFase: number;
-  sessoesSemanaAtual: number;
-  mensagens: string[];
-}
-
 export interface EngajamentoDTO {
   participanteId: number;
-  categoriaAtual: CategoriaEngajamento;
-  mudouCategoria: boolean;
-  mensagemCelebracao: string;
-  resumoGamificacao?: ResumoGamificacaoDTO;
-  podio: PodioItemDTO[];
-  ranking: RankingItemDTO[];
-  proximoNivel: ProximoNivelDTO;
+  mensagem: string;
+  fase: FaseTreino;
+  faseLabel: string;
+  semana: SemanaEngajamentoDTO;
+  ranking: RankingFaseDTO;
+  nivel: NivelEngajamentoDTO;
   percepcaoEsforco: PercepcaoEsforcoDTO[];
 }

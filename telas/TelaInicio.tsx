@@ -11,8 +11,9 @@ import {
 } from 'react-native';
 
 import { buscarEngajamento, buscarInicioParticipante } from '../services/treinoService';
-import type { ProximoNivelDTO } from '../types/engajamento';
+import type { NivelEngajamentoDTO } from '../types/engajamento';
 import type { InicioParticipanteDTO } from '../types/inicio';
+import AvatarImagem from './AvatarImagem';
 import type { FaseTreino } from '../types/treino';
 
 const NOMES_MES = [
@@ -88,6 +89,7 @@ interface TelaInicioProps {
   proximoTreinoCarregando: boolean;
   onIniciarTreino: () => void;
   onAbrirPerfil: () => void;
+  visivel?: boolean;
 }
 
 export default function TelaInicio({
@@ -98,11 +100,12 @@ export default function TelaInicio({
   proximoTreinoCarregando,
   onIniciarTreino,
   onAbrirPerfil,
+  visivel = true,
 }: TelaInicioProps) {
   const hoje = React.useMemo(() => new Date(), []);
   const [mesExibido, setMesExibido] = React.useState({ mes: hoje.getMonth() + 1, ano: hoje.getFullYear() });
   const [dados, setDados] = React.useState<InicioParticipanteDTO | null>(null);
-  const [progresso, setProgresso] = React.useState<ProximoNivelDTO | null>(null);
+  const [progresso, setProgresso] = React.useState<(NivelEngajamentoDTO & { faseLabel: string }) | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [mesCarregando, setMesCarregando] = React.useState(false);
   const [erro, setErro] = React.useState<string | null>(null);
@@ -117,7 +120,7 @@ export default function TelaInicio({
           buscarEngajamento(participanteId),
         ]);
         setDados(inicio);
-        setProgresso(engajamento.proximoNivel);
+        setProgresso({ ...engajamento.nivel, faseLabel: engajamento.faseLabel });
       } catch (error) {
         setErro(error instanceof Error ? error.message : 'Erro ao carregar o início');
       } finally {
@@ -135,8 +138,6 @@ export default function TelaInicio({
         const inicio = await buscarInicioParticipante(participanteId, mes, ano);
         setDados(inicio);
       } catch {
-        // Falha ao trocar de mês: volta pro mês anterior em vez de deixar o
-        // cabeçalho do calendário e os dados exibidos fora de sincronia.
         setMesExibido(mesParaVoltarEmCasoDeErro);
       } finally {
         setMesCarregando(false);
@@ -146,9 +147,19 @@ export default function TelaInicio({
   );
 
   React.useEffect(() => {
-    // Roda só na montagem (ou troca de participante); navegação de mês usa carregarMes.
     carregarTudo(mesExibido.mes, mesExibido.ano);
   }, [participanteId]);
+
+  const primeiraExecucao = React.useRef(true);
+  React.useEffect(() => {
+    if (primeiraExecucao.current) {
+      primeiraExecucao.current = false;
+      return;
+    }
+    if (visivel) {
+      carregarTudo(mesExibido.mes, mesExibido.ano);
+    }
+  }, [visivel]);
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -176,7 +187,6 @@ export default function TelaInicio({
   const ehMesAtual = mesExibido.mes === hoje.getMonth() + 1 && mesExibido.ano === hoje.getFullYear();
 
   const primeiroNome = nome.trim().split(' ')[0] || 'Participante';
-  const emojiAvatar = avatarGenero === 'MASCULINO' ? '🏋️' : avatarGenero === 'FEMININO' ? '🧘‍♀️' : '🤖';
 
   if (loading) {
     return (
@@ -220,7 +230,7 @@ export default function TelaInicio({
           accessibilityRole="button"
           accessibilityLabel="Abrir perfil"
         >
-          <Text style={styles.avatarBotaoEmoji}>{emojiAvatar}</Text>
+          <AvatarImagem genero={avatarGenero} largura={40} altura={56} raio={10} />
         </Pressable>
       </View>
 
@@ -359,15 +369,15 @@ export default function TelaInicio({
         <View style={styles.progressoInfo}>
           <Text style={styles.progressoTitulo}>Seu Progresso</Text>
           <Text style={styles.progressoNivel}>
-            Nível {progresso?.nivelAtual ?? '—'}
+            {progresso ? `${progresso.faseLabel} · Nível ${progresso.nivelAtual}` : 'Nível —'}
           </Text>
           <View style={styles.progressoBarraFundo}>
             <View style={[styles.progressoBarraPreenchida, { width: `${progressoPercentual}%` }]} />
           </View>
           <Text style={styles.progressoTexto}>
-            {progresso?.proximoNivel
-              ? `${progressoPercentual}% para o próximo nível`
-              : 'Nível máximo atingido'}
+            {progresso?.programaConcluido
+              ? 'Você concluiu todos os níveis'
+              : `${progressoPercentual}% para o próximo nível`}
           </Text>
         </View>
       </View>
@@ -436,15 +446,9 @@ const styles = StyleSheet.create({
     color: '#20283b',
   },
   avatarBotao: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: '#3b5cff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarBotaoEmoji: {
-    fontSize: 18,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#3b5cff',
   },
   calendarioCard: {
     borderRadius: 14,

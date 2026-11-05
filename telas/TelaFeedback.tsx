@@ -38,14 +38,17 @@ const avatarPorNota: Partial<Record<number, ReturnType<typeof require>>> = {
   10: require('../assets/bonecos/Esforco_Barra_04_MuitoDificil.png'),
 };
 
-const tamanhoAvatarPorNota: Record<number, { width: number; height: number }> = {
-  0: { width: 94, height: 108 },
-  3: { width: 112, height: 108 },
-  7: { width: 140, height: 112 },
-  10: { width: 148, height: 116 },
-};
-
 const notas = Array.from({ length: 11 }, (_, i) => 10 - i);
+const TOTAL_LINHAS = notas.length;
+
+const PROPORCAO_AVATAR = 4 / 3;
+const LARGURA_COLUNA_AVATAR = '40%';
+const LARGURA_TRILHA = 40;
+const TAMANHO_SELETOR = 30;
+
+function centroDaNota(nota: number, alturaLinha: number): number {
+  return (10 - nota + 0.5) * alturaLinha;
+}
 
 export default function TelaFeedback({
   onSubmit,
@@ -59,28 +62,41 @@ export default function TelaFeedback({
   duracaoTotalSegundos,
 }: TelaFeedbackProps) {
   const [selectedRating, setSelectedRating] = React.useState<number | null>(null);
-  const [escalaHeight, setEscalaHeight] = React.useState(0);
+  const [escala, setEscala] = React.useState({ largura: 0, altura: 0 });
+  const escalaRef = React.useRef<View>(null);
+  const topoEscalaRef = React.useRef(0);
   const isRatingActive = selectedRating !== null;
 
-  const handleSelectRating = (rating: number) => {
-    setSelectedRating(rating);
-  };
+  const alturaLinha = escala.altura / TOTAL_LINHAS;
+  const larguraColunaAvatar = escala.largura * 0.4;
+  const alturaAvatar = Math.min(100, escala.altura / 4 - 14, (larguraColunaAvatar - 8) / PROPORCAO_AVATAR);
+  const larguraAvatar = alturaAvatar * PROPORCAO_AVATAR;
 
   const handleEscalaLayout = (event: LayoutChangeEvent) => {
-    setEscalaHeight(event.nativeEvent.layout.height);
+    const { width, height } = event.nativeEvent.layout;
+    setEscala({ largura: width, altura: height });
   };
 
-  const handleSliderMove = React.useCallback(
-    (locationY: number) => {
-      if (escalaHeight <= 0) {
-        return;
+  const notaPelaPosicao = React.useCallback(
+    (pageY: number) => {
+      if (alturaLinha <= 0) {
+        return null;
       }
-
-      const clampedY = Math.min(Math.max(locationY, 0), escalaHeight);
-      const nextRating = Math.round(((escalaHeight - clampedY) / escalaHeight) * 10);
-      setSelectedRating(nextRating);
+      const y = pageY - topoEscalaRef.current;
+      const linha = Math.min(TOTAL_LINHAS - 1, Math.max(0, Math.floor(y / alturaLinha)));
+      return 10 - linha;
     },
-    [escalaHeight],
+    [alturaLinha],
+  );
+
+  const selecionarPelaPosicao = React.useCallback(
+    (pageY: number) => {
+      const nota = notaPelaPosicao(pageY);
+      if (nota !== null) {
+        setSelectedRating(nota);
+      }
+    },
+    [notaPelaPosicao],
   );
 
   const sliderPanResponder = React.useMemo(
@@ -89,14 +105,22 @@ export default function TelaFeedback({
         onStartShouldSetPanResponder: () => true,
         onMoveShouldSetPanResponder: () => true,
         onPanResponderGrant: (event) => {
-          handleSliderMove(event.nativeEvent.locationY);
+          const pageY = event.nativeEvent.pageY;
+          escalaRef.current?.measureInWindow((_x, y) => {
+            topoEscalaRef.current = y;
+            selecionarPelaPosicao(pageY);
+          });
         },
         onPanResponderMove: (event) => {
-          handleSliderMove(event.nativeEvent.locationY);
+          selecionarPelaPosicao(event.nativeEvent.pageY);
         },
       }),
-    [handleSliderMove],
+    [selecionarPelaPosicao],
   );
+
+  const ajustarNota = (delta: number) => {
+    setSelectedRating((atual) => Math.min(10, Math.max(0, (atual ?? 0) + delta)));
+  };
 
   return (
     <View style={styles.feedbackCard}>
@@ -107,43 +131,78 @@ export default function TelaFeedback({
         </Text>
 
         <View
+          ref={escalaRef}
           style={styles.escalaWrap}
           onLayout={handleEscalaLayout}
+          accessible
+          accessibilityRole="adjustable"
+          accessibilityLabel="Esforço do treino, de 0 (muito fácil) a 10 (muito difícil)"
+          accessibilityValue={{
+            min: 0,
+            max: 10,
+            now: selectedRating ?? undefined,
+            text: selectedRating === null ? 'Nenhuma nota escolhida' : String(selectedRating),
+          }}
+          accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
+          onAccessibilityAction={(event) => ajustarNota(event.nativeEvent.actionName === 'increment' ? 1 : -1)}
           {...sliderPanResponder.panHandlers}
         >
-          <View style={styles.linhaVertical} />
-          {Object.entries(avatarPorNota).map(([nota, source]) => (
-            <Image
-              key={nota}
-              source={source}
-              resizeMode="contain"
-              style={[
-                styles.avatar,
-                tamanhoAvatarPorNota[Number(nota)],
-                { top: `${((10 - Number(nota)) / 10) * 100 - 4}%` },
-              ]}
-            />
-          ))}
-          <View style={styles.notas}>
+
+          <View style={styles.colunaAvatar} pointerEvents="none">
+            {alturaAvatar > 0 &&
+              [10, 7, 3, 0].map((nota) => (
+                <Image
+                  key={nota}
+                  source={avatarPorNota[nota]}
+                  resizeMode="contain"
+                  style={{ width: larguraAvatar, height: alturaAvatar }}
+                />
+              ))}
+          </View>
+
+          {/* Trilha: linha, uma marca por nota e o seletor, todos no mesmo eixo */}
+          <View style={styles.colunaTrilha} pointerEvents="none">
+            {alturaLinha > 0 && (
+              <>
+                <View
+                  style={[
+                    styles.linhaVertical,
+                    { top: centroDaNota(10, alturaLinha), bottom: alturaLinha / 2 },
+                  ]}
+                />
+                {notas.map((nota) => (
+                  <View
+                    key={nota}
+                    style={[styles.marca, { top: centroDaNota(nota, alturaLinha) - styles.marca.height / 2 }]}
+                  />
+                ))}
+                {selectedRating !== null && (
+                  <View
+                    style={[
+                      styles.seletor,
+                      { top: centroDaNota(selectedRating, alturaLinha) - TAMANHO_SELETOR / 2 },
+                    ]}
+                  />
+                )}
+              </>
+            )}
+          </View>
+
+          <View style={styles.notas} pointerEvents="none">
             {notas.map((nota) => {
               const isSelected = nota === selectedRating;
               return (
-                <Pressable
-                  key={nota}
-                  onPress={() => handleSelectRating(nota)}
-                  hitSlop={8}
-                  style={styles.notaLinha}
-                >
-                  <View style={styles.bullet} />
-                  <Text style={[styles.notaTexto, isSelected && styles.notaTextoAtiva]}>
-                    {nota}
-                    {legendaPorNota[nota] ? ` - ${legendaPorNota[nota]}` : ''}
-                  </Text>
-                </Pressable>
+                <View key={nota} style={styles.notaLinha}>
+                  <Text style={[styles.notaNumero, isSelected && styles.notaAtiva]}>{nota}</Text>
+                  {legendaPorNota[nota] ? (
+                    <Text style={[styles.notaLegenda, isSelected && styles.notaAtiva]} numberOfLines={1}>
+                      {legendaPorNota[nota]}
+                    </Text>
+                  ) : null}
+                </View>
               );
             })}
           </View>
-          <View style={[styles.seletor, { bottom: `${((selectedRating ?? 0) / 10) * 100}%` }]} />
         </View>
 
         {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
@@ -199,65 +258,75 @@ const styles = StyleSheet.create({
   },
   escalaWrap: {
     flex: 1,
-    minHeight: 270,
-    position: 'relative',
-    marginBottom: 24,
-    marginTop: 24,
+    minHeight: 330,
+    flexDirection: 'row',
+    marginTop: 18,
+    marginBottom: 20,
+  },
+  colunaAvatar: {
+    width: LARGURA_COLUNA_AVATAR,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 4,
+  },
+  colunaTrilha: {
+    width: LARGURA_TRILHA,
+    alignItems: 'center',
   },
   linhaVertical: {
     position: 'absolute',
-    top: 0,
-    bottom: 0,
-    left: '44%',
-    width: 12,
-    borderRadius: 99,
+    width: 8,
+    borderRadius: 4,
     backgroundColor: '#e2e4e9',
-    zIndex: 0,
   },
-  avatar: {
+  marca: {
     position: 'absolute',
-    left: 0,
-    zIndex: 1,
+    width: 14,
+    height: 2,
+    borderRadius: 1,
+    backgroundColor: '#b9bdd0',
+  },
+  seletor: {
+    position: 'absolute',
+    width: TAMANHO_SELETOR,
+    height: TAMANHO_SELETOR,
+    borderRadius: TAMANHO_SELETOR / 2,
+    backgroundColor: '#3261e8',
+    borderWidth: 4,
+    borderColor: '#ffffff',
+    shadowColor: '#3261e8',
+    shadowOpacity: 0.35,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 4,
   },
   notas: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    bottom: 0,
-    left: '48%',
-    justifyContent: 'space-between',
-    zIndex: 1,
+    flex: 1,
+    paddingLeft: 8,
   },
   notaLinha: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 8,
   },
-  bullet: {
-    width: 6,
-    height: 6,
-    marginRight: 12,
-    borderRadius: 3,
-    backgroundColor: '#c8c6df',
-  },
-  notaTexto: {
+  notaNumero: {
+    width: 24,
     fontSize: 18,
     lineHeight: 22,
+    textAlign: 'right',
+    fontVariant: ['tabular-nums'],
     color: '#20222b',
   },
-  notaTextoAtiva: {
-    fontWeight: '700',
+  notaLegenda: {
+    flexShrink: 1,
+    fontSize: 16,
+    lineHeight: 22,
+    color: '#4b5263',
   },
-  seletor: {
-    position: 'absolute',
-    left: '44%',
-    width: 28,
-    height: 28,
-    marginLeft: -8,
-    marginBottom: -14,
-    borderRadius: 14,
-    backgroundColor: '#3261e8',
-    zIndex: 2,
+  notaAtiva: {
+    fontWeight: '800',
+    color: '#2e5be6',
   },
   errorText: {
     fontSize: 13,
