@@ -391,6 +391,7 @@ export default function FluxoTelas() {
                   proximoTreinoCarregando={treinoLoading}
                   onIniciarTreino={handleIniciarTreinoPelaHome}
                   onAbrirPerfil={() => setAbaAtiva('perfil')}
+                  visivel={abaAtiva === 'inicio'}
                 />
               </View>
             )}
@@ -403,6 +404,7 @@ export default function FluxoTelas() {
                   participanteId={participante.participanteId}
                   onAlterarAvatar={() => setEtapa('escolhaAvatar')}
                   onLogout={handleLogout}
+                  visivel={abaAtiva === 'perfil'}
                 />
               </View>
             )}
