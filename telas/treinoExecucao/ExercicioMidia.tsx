@@ -39,6 +39,12 @@ function isYouTubeUrl(url: string): boolean {
   }
 }
 
+// Sem controles (que exibem a duração original) e em loop, já que o tempo é do treino.
+// O parâmetro `playlist` com o próprio id é exigido pelo YouTube para o `loop` funcionar.
+function parametrosEmbed(videoId: string): string {
+  return `playsinline=1&controls=0&loop=1&playlist=${videoId}&autoplay=1&mute=1`;
+}
+
 function getYouTubeEmbedUrl(url: string): string {
   try {
     const parsed = new URL(normalizeUrl(url));
@@ -46,19 +52,23 @@ function getYouTubeEmbedUrl(url: string): string {
     const pathname = parsed.pathname;
 
     if (hostname === 'youtu.be') {
-      return `https://www.youtube.com/embed/${pathname.slice(1)}?playsinline=1`;
+      const id = pathname.slice(1);
+      return `https://www.youtube.com/embed/${id}?${parametrosEmbed(id)}`;
     }
 
     if (pathname.startsWith('/shorts/')) {
-      return `https://www.youtube.com/embed/${pathname.split('/shorts/')[1]}?playsinline=1`;
+      const id = pathname.split('/shorts/')[1];
+      return `https://www.youtube.com/embed/${id}?${parametrosEmbed(id)}`;
     }
 
     if (parsed.searchParams.has('v')) {
-      return `https://www.youtube.com/embed/${parsed.searchParams.get('v')}?playsinline=1`;
+      const id = parsed.searchParams.get('v') ?? '';
+      return `https://www.youtube.com/embed/${id}?${parametrosEmbed(id)}`;
     }
 
     if (pathname.startsWith('/embed/')) {
-      return `${normalizeUrl(url)}?playsinline=1`;
+      const id = pathname.split('/embed/')[1];
+      return `https://www.youtube.com/embed/${id}?${parametrosEmbed(id)}`;
     }
 
     return normalizeUrl(url);
@@ -130,8 +140,8 @@ export default function ExercicioMidia({
           Platform.OS === 'web' ? (
             <video
               ref={webVideoRef}
-              controls
               playsInline
+              muted
               preload="metadata"
               autoPlay={!isPaused}
               loop={shouldLoopVideo}
@@ -144,7 +154,6 @@ export default function ExercicioMidia({
               ref={nativeVideoRef}
               source={{ uri: sourceUri }}
               style={styles.video}
-              useNativeControls
               resizeMode={ResizeMode.CONTAIN}
               shouldPlay={!isPaused}
               isLooping={shouldLoopVideo}
