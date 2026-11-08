@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 
 import { buscarPerfilParticipante } from '../services/treinoService';
+import AvatarImagem from './AvatarImagem';
 import { maskCpf } from '../utils/formatCpf';
 import type { PerfilParticipanteDTO } from '../types/perfil';
 
@@ -33,28 +34,18 @@ function formatarMembroDesde(dataIso: string): string {
   return `${MESES[data.getMonth()]} ${data.getFullYear()}`;
 }
 
-function emojiPorAvatarGenero(avatarGenero: PerfilParticipanteDTO['avatarGenero']): string {
-  if (avatarGenero === 'MASCULINO') {
-    return '🏋️';
-  }
-
-  if (avatarGenero === 'FEMININO') {
-    return '🧘‍♀️';
-  }
-
-  return '🤖';
-}
-
 interface TelaPerfilProps {
   participanteId: number;
   onAlterarAvatar: () => void;
   onLogout: () => void;
+  visivel?: boolean;
 }
 
 export default function TelaPerfil({
   participanteId,
   onAlterarAvatar,
   onLogout,
+  visivel = true,
 }: TelaPerfilProps) {
   const [dados, setDados] = React.useState<PerfilParticipanteDTO | null>(null);
   const [loading, setLoading] = React.useState(true);
@@ -77,6 +68,18 @@ export default function TelaPerfil({
   React.useEffect(() => {
     carregar();
   }, [carregar]);
+
+
+  const primeiraExecucao = React.useRef(true);
+  React.useEffect(() => {
+    if (primeiraExecucao.current) {
+      primeiraExecucao.current = false;
+      return; 
+    }
+    if (visivel) {
+      carregar();
+    }
+  }, [visivel]);
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -119,7 +122,7 @@ export default function TelaPerfil({
           accessibilityRole="button"
           accessibilityLabel="Alterar avatar"
         >
-          <Text style={styles.avatarEmoji}>{emojiPorAvatarGenero(dados.avatarGenero)}</Text>
+          <AvatarImagem genero={dados.avatarGenero} modo="rosto" tamanho={88} />
           <View style={styles.avatarEditBadge}>
             <Text style={styles.avatarEditIcon}>✎</Text>
           </View>
@@ -273,24 +276,18 @@ const styles = StyleSheet.create({
     backgroundColor: '#eef2ff',
   },
   avatarWrap: {
-    width: 84,
-    height: 84,
-    borderRadius: 42,
-    backgroundColor: '#3b5cff',
-    alignItems: 'center',
-    justifyContent: 'center',
+    borderRadius: 47,
+    borderWidth: 3,
+    borderColor: '#3b5cff',
     marginBottom: 10,
-  },
-  avatarEmoji: {
-    fontSize: 40,
   },
   avatarEditBadge: {
     position: 'absolute',
-    right: -2,
-    bottom: -2,
-    width: 26,
-    height: 26,
-    borderRadius: 13,
+    right: -4,
+    bottom: -4,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     backgroundColor: '#ffffff',
     borderWidth: 1,
     borderColor: '#d9e2ff',
@@ -298,7 +295,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   avatarEditIcon: {
-    fontSize: 13,
+    fontSize: 15,
     color: '#3b5cff',
   },
   nome: {

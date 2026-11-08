@@ -1,7 +1,20 @@
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import React from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import {
+  Image,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+  type ImageSourcePropType,
+} from 'react-native';
 
-export type GeneroAvatar = 'FEMININO' | 'MASCULINO';
+import { COR_FUNDO_AVATAR, imagemAvatar, ZOOM_AVATAR, type GeneroAvatar } from '../utils/avatar';
+
+export type { GeneroAvatar };
+
+const ALTURA_IMAGEM_AVATAR = 250;
 
 type TelaEscolhaAvatarProps = {
   onContinue?: (genero: GeneroAvatar, nomeAvatar: string) => void | Promise<void>;
@@ -50,13 +63,13 @@ export default function TelaEscolhaAvatar({
 
         <View style={styles.optionsRow}>
           <OpcaoGenero
-            emoji="🧘‍♀️"
+            imagem={imagemAvatar.FEMININO}
             label="Feminino"
             selecionado={generoSelecionado === 'FEMININO'}
             onPress={() => setGeneroSelecionado('FEMININO')}
           />
           <OpcaoGenero
-            emoji="🏋️"
+            imagem={imagemAvatar.MASCULINO}
             label="Masculino"
             selecionado={generoSelecionado === 'MASCULINO'}
             onPress={() => setGeneroSelecionado('MASCULINO')}
@@ -99,13 +112,13 @@ export default function TelaEscolhaAvatar({
 }
 
 type OpcaoGeneroProps = {
-  emoji: string;
+  imagem: ImageSourcePropType;
   label: string;
   selecionado: boolean;
   onPress: () => void;
 };
 
-function OpcaoGenero({ emoji, label, selecionado, onPress }: OpcaoGeneroProps) {
+function OpcaoGenero({ imagem, label, selecionado, onPress }: OpcaoGeneroProps) {
   return (
     <Pressable
       onPress={onPress}
@@ -114,7 +127,20 @@ function OpcaoGenero({ emoji, label, selecionado, onPress }: OpcaoGeneroProps) {
       accessibilityLabel={label}
       accessibilityState={{ selected: selecionado }}
     >
-      <Text style={styles.opcaoEmoji}>{emoji}</Text>
+      {/* Moldura com o mesmo fundo escuro do PNG: a imagem preenche a área toda, sem "caixa" dentro do cartão */}
+      <View style={styles.molduraImagem}>
+        <Image
+          source={imagem}
+          style={[styles.opcaoImagem, { transform: [{ scale: ZOOM_AVATAR }] }]}
+          resizeMode="cover"
+        />
+        {selecionado ? (
+          <View style={styles.marcaSelecionado}>
+            <MaterialCommunityIcons name="check-circle" size={30} color="#4f62d9" />
+          </View>
+        ) : null}
+      </View>
+      <Text style={[styles.opcaoLabel, selecionado && styles.opcaoLabelSelecionada]}>{label}</Text>
     </Pressable>
   );
 }
@@ -139,8 +165,8 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    paddingHorizontal: 22,
-    paddingTop: 32,
+    paddingHorizontal: 20,
+    paddingTop: 20,
     paddingBottom: 24,
   },
   backButton: {
@@ -166,14 +192,14 @@ const styles = StyleSheet.create({
     fontSize: 17,
     lineHeight: 22,
     color: '#8b93a3',
-    marginBottom: 28,
+    marginBottom: 20,
   },
   optionsRow: {
     flexDirection: 'row',
     gap: 14,
   },
   nomeField: {
-    marginTop: 20,
+    marginTop: 16,
   },
   label: {
     fontSize: 15,
@@ -194,30 +220,48 @@ const styles = StyleSheet.create({
   },
   opcaoCard: {
     flex: 1,
-    minHeight: 120,
-    borderRadius: 16,
+    borderRadius: 18,
     borderWidth: 2,
     borderColor: '#e4e8f0',
     backgroundColor: '#ffffff',
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 18,
-    paddingHorizontal: 10,
+    padding: 6,
   },
   opcaoCardSelecionada: {
-    borderColor: '#7d8ce8',
-    backgroundColor: '#f3f5ff',
+    borderWidth: 3,
+    borderColor: '#4f62d9',
+    backgroundColor: '#eef1ff',
   },
-  opcaoEmoji: {
-    fontSize: 44,
-    lineHeight: 52,
-    marginBottom: 8,
+  molduraImagem: {
+    width: '100%',
+    height: ALTURA_IMAGEM_AVATAR,
+    borderRadius: 12,
+    overflow: 'hidden',
+    backgroundColor: COR_FUNDO_AVATAR, // mesmo tom do fundo das imagens
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  opcaoImagem: {
+    width: '100%',
+    height: '100%',
+  },
+  marcaSelecionado: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    borderRadius: 16,
+    backgroundColor: '#ffffff',
   },
   opcaoLabel: {
-    fontSize: 17,
+    marginTop: 10,
+    marginBottom: 4,
+    fontSize: 18,
     lineHeight: 22,
     fontWeight: '700',
     color: '#20222b',
+  },
+  opcaoLabelSelecionada: {
+    color: '#4f62d9',
   },
   errorText: {
     marginTop: 18,
