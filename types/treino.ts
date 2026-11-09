@@ -11,6 +11,8 @@ export interface TreinoExercicioDTO {
   series: number;
   descansoSegundos: number;
   descansoTransicaoSegundos: number;
+  /** Velocidade de reprodução do vídeo definida pelo pesquisador no plano de treino (1 = original). */
+  velocidadeExecucao?: number;
   duracaoEstimadaSegundos: number;
   exercicio: ExercicioDTO;
 }

@@ -118,6 +118,7 @@ export default function TelaTreinoExecucao({
         />
         <ExercicioMidia
           videoUrl={exercicioAtual.exercicio.videoUrl}
+          velocidade={exercicioAtual.velocidadeExecucao}
           duracaoTotalSegundos={exercicioAtual.duracaoEstimadaSegundos}
           isPaused={pausado}
         />
