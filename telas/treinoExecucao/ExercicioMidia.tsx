@@ -7,6 +7,8 @@ type ExercicioMidiaProps = {
   videoUrl?: string;
   duracaoTotalSegundos?: number;
   isPaused?: boolean;
+  /** Velocidade de reprodução cadastrada no exercício (1 = original). */
+  velocidade?: number;
 };
 
 const YOUTUBE_HOSTS = [
@@ -81,7 +83,9 @@ export default function ExercicioMidia({
   videoUrl,
   duracaoTotalSegundos,
   isPaused = false,
+  velocidade,
 }: ExercicioMidiaProps) {
+  const taxaReproducao = typeof velocidade === 'number' && velocidade > 0 ? velocidade : 1;
   const [erroVideo, setErroVideo] = React.useState(false);
   const nativeVideoRef = React.useRef<any>(null);
   const webVideoRef = React.useRef<any>(null);
@@ -112,6 +116,20 @@ export default function ExercicioMidia({
       webVideoRef.current.play?.().catch(() => {});
     }
   }, [isPaused, videoUrl]);
+
+  // No <video> do navegador a velocidade é propriedade do elemento, não atributo.
+  // defaultPlaybackRate garante que ela se mantenha quando o vídeo recarrega/reinicia.
+  const aplicarVelocidadeWeb = React.useCallback(() => {
+    const elemento = webVideoRef.current;
+    if (elemento) {
+      elemento.defaultPlaybackRate = taxaReproducao;
+      elemento.playbackRate = taxaReproducao;
+    }
+  }, [taxaReproducao]);
+
+  React.useEffect(() => {
+    aplicarVelocidadeWeb();
+  }, [aplicarVelocidadeWeb, sourceUri]);
 
   return (
     <View style={styles.container}>
@@ -147,6 +165,7 @@ export default function ExercicioMidia({
               loop={shouldLoopVideo}
               src={sourceUri}
               style={styles.video}
+              onLoadedMetadata={aplicarVelocidadeWeb}
               onError={() => setErroVideo(true)}
             />
           ) : (
@@ -157,6 +176,8 @@ export default function ExercicioMidia({
               resizeMode={ResizeMode.CONTAIN}
               shouldPlay={!isPaused}
               isLooping={shouldLoopVideo}
+              rate={taxaReproducao}
+              shouldCorrectPitch
               onError={() => setErroVideo(true)}
             />
           )
