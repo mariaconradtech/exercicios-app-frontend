@@ -1,4 +1,5 @@
 import React from 'react';
+import { Feather } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import {
   SafeAreaView,
@@ -178,7 +179,21 @@ export default function FluxoTelas() {
     // barra aqui também — antes de entrar na tela de instrução — em vez de só
     // descobrir isso ao tentar abrir a sessão no backend.
     if (treinouHoje && screenIndex === 'intro') {
-      return renderPlaceholder('Treino de hoje concluído', MENSAGEM_TREINO_CONCLUIDO_HOJE);
+      return (
+        <View style={styles.treinoConcluidoTela}>
+          <View style={styles.treinoConcluidoCartao}>
+            <View style={styles.treinoConcluidoIconeWrap}>
+              <Feather name="check" size={36} color="#ffffff" />
+            </View>
+            <Text style={styles.treinoConcluidoTitulo}>Treino de hoje concluído</Text>
+            <Text style={styles.treinoConcluidoMensagem}>{MENSAGEM_TREINO_CONCLUIDO_HOJE}</Text>
+            <View style={styles.treinoConcluidoBadge}>
+              <Feather name="sun" size={14} color="#1f7a46" />
+              <Text style={styles.treinoConcluidoBadgeTexto}>Volte amanhã</Text>
+            </View>
+          </View>
+        </View>
+      );
     }
 
     return (
@@ -561,6 +576,68 @@ const styles = StyleSheet.create({
     lineHeight: 23,
     color: '#5a647b',
     textAlign: 'center',
+  },
+  treinoConcluidoTela: {
+    flex: 1,
+    backgroundColor: '#f3faf6',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 24,
+  },
+  treinoConcluidoCartao: {
+    borderRadius: 20,
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#c9ecd7',
+    paddingHorizontal: 22,
+    paddingTop: 28,
+    paddingBottom: 26,
+    alignItems: 'center',
+    shadowColor: '#1f7a46',
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 2,
+  },
+  treinoConcluidoIconeWrap: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: '#11a84f',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 18,
+  },
+  treinoConcluidoTitulo: {
+    fontSize: 22,
+    lineHeight: 28,
+    fontWeight: '800',
+    color: '#1d2433',
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  treinoConcluidoMensagem: {
+    fontSize: 15,
+    lineHeight: 22,
+    color: '#4a5568',
+    textAlign: 'center',
+    marginBottom: 18,
+  },
+  treinoConcluidoBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#eafaf0',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: '#bdeccf',
+  },
+  treinoConcluidoBadgeTexto: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#1f7a46',
   },
   tabBar: {
     borderTopWidth: 1,
