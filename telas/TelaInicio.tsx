@@ -2,6 +2,8 @@ import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import React from 'react';
 import {
   ActivityIndicator,
+  Animated,
+  Modal,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -10,11 +12,57 @@ import {
   View,
 } from 'react-native';
 
-import { buscarEngajamento, buscarInicioParticipante } from '../services/treinoService';
+import {
+  buscarEngajamento,
+  buscarInicioParticipante,
+  responderPerguntaRefazer,
+} from '../services/treinoService';
 import type { NivelEngajamentoDTO } from '../types/engajamento';
 import type { InicioParticipanteDTO } from '../types/inicio';
+import { escolherMensagemRotativa } from '../utils/mensagens';
 import AvatarImagem from './AvatarImagem';
 import type { FaseTreino } from '../types/treino';
+
+/**
+ * Mensagens do item 1 do documento "Mensagens para o app TecnoAging" — Tela
+ * inicial (entrada). O texto é mantido exatamente como no documento original.
+ */
+const MENSAGENS_ENTRADA_NAO_TREINOU = [
+  'Que bom te ver aqui! Fazer exercícios regularmente é ter compromisso com a sua saúde. Vamos começar o treino de hoje?',
+  'Bem-vindo de volta! Ao fazer seus exercícios hoje, você terá mais força e disposição para fazer o que gosta. Vamos começar?',
+  'Você sabia que fazer exercícios te deixa mais disposto e independente por mais tempo? Então vamos começar?',
+  'Praticar exercícios regularmente melhora o equilíbrio e previne quedas. Vamos começar o treino de hoje?',
+];
+
+const MENSAGENS_ENTRADA_JA_TREINOU = [
+  'Você já realizou os exercícios do dia! Parabéns pela sua dedicação!',
+  'Você completou a sessão de exercícios do dia. Excelente trabalho! Continue assim!',
+  'Parabéns pelo treino de hoje! Você está ficando mais forte a cada dia!',
+  'A cada treino, você fica melhor! Parabéns pela dedicação!',
+];
+
+const MENSAGENS_ENTRADA_SEMANA_COMPLETA = [
+  'Você realizou as sessões de exercícios da semana! Parabéns pela sua dedicação e cuidado com a saúde! Seu próximo treino estará disponível na segunda-feira! Te espero aqui! Até mais',
+  'Você está muito comprometido/comprometida com a sua saúde, já realizou todos os treinos da semana! Continue assim! Te vejo na segunda-feira para nosso próximo treino!',
+  'Todas as sessões de treino da semana foram concluídas com sucesso! Você está cada dia melhor! Nos encontramos na segunda-feira, para nosso próximo treino!',
+  'Parabéns pelos treinos dessa semana! Acompanhe sua evolução na aba de progresso e ranking! Te vejo no nosso próximo treino, até lá!',
+];
+
+// Tempo que o aviso de boas-vindas fica visível antes de desaparecer sozinho.
+// Não é um modal: o idoso nunca fica travado nele, só lê e segue usando o app.
+const BANNER_BOAS_VINDAS_DURACAO_MS = 6000;
+const BANNER_BOAS_VINDAS_ANIMACAO_MS = 280;
+const BANNER_BOAS_VINDAS_DESLOCAMENTO = -140;
+
+function escolherMensagemEntrada(treinouHoje: boolean, semanaCompleta: boolean): string {
+  if (semanaCompleta) {
+    return escolherMensagemRotativa('entrada-semana-completa', MENSAGENS_ENTRADA_SEMANA_COMPLETA);
+  }
+  if (treinouHoje) {
+    return escolherMensagemRotativa('entrada-ja-treinou', MENSAGENS_ENTRADA_JA_TREINOU);
+  }
+  return escolherMensagemRotativa('entrada-nao-treinou', MENSAGENS_ENTRADA_NAO_TREINOU);
+}
 
 const NOMES_MES = [
   'Janeiro',
@@ -110,6 +158,12 @@ export default function TelaInicio({
   const [mesCarregando, setMesCarregando] = React.useState(false);
   const [erro, setErro] = React.useState<string | null>(null);
   const [refreshing, setRefreshing] = React.useState(false);
+  const [perguntaRefazerVisivel, setPerguntaRefazerVisivel] = React.useState(false);
+  const [respondendoPerguntaRefazer, setRespondendoPerguntaRefazer] = React.useState(false);
+  // Dia do calendário tocado pelo participante. O card "Treino realizado" só
+  // aparece quando há um dia selecionado com treino — não mais de forma
+  // automática. Tocar no mesmo dia de novo esconde o card.
+  const [diaSelecionado, setDiaSelecionado] = React.useState<number | null>(null);
 
   const carregarTudo = React.useCallback(
     async (mes: number, ano: number) => {
@@ -171,6 +225,7 @@ export default function TelaInicio({
     const novoMes =
       mesAtual.mes === 1 ? { mes: 12, ano: mesAtual.ano - 1 } : { mes: mesAtual.mes - 1, ano: mesAtual.ano };
     setMesExibido(novoMes);
+    setDiaSelecionado(null);
     carregarMes(novoMes.mes, novoMes.ano, mesAtual);
   };
 
@@ -179,14 +234,130 @@ export default function TelaInicio({
     const novoMes =
       mesAtual.mes === 12 ? { mes: 1, ano: mesAtual.ano + 1 } : { mes: mesAtual.mes + 1, ano: mesAtual.ano };
     setMesExibido(novoMes);
+    setDiaSelecionado(null);
     carregarMes(novoMes.mes, novoMes.ano, mesAtual);
+  };
+
+  const alternarDiaSelecionado = (dia: number) => {
+    setDiaSelecionado((atual) => (atual === dia ? null : dia));
   };
 
   const celulas = React.useMemo(() => gerarCelulas(mesExibido.mes, mesExibido.ano), [mesExibido]);
   const diasComTreinoSet = React.useMemo(() => new Set(dados?.diasComTreino ?? []), [dados]);
   const ehMesAtual = mesExibido.mes === hoje.getMonth() + 1 && mesExibido.ano === hoje.getFullYear();
+  const treinoDoDiaSelecionado =
+    diaSelecionado !== null ? dados?.treinosPorDia[diaSelecionado] ?? null : null;
 
   const primeiroNome = nome.trim().split(' ')[0] || 'Participante';
+
+  // Mensagem da tela de entrada (item 1 do doc de mensagens): varia aleatoriamente
+  // entre os textos do grupo certo, mas só é sorteada de novo quando o estado
+  // real (treinou hoje / semana completa) muda — não em todo re-render.
+  const mensagemEntrada = React.useMemo(
+    () => escolherMensagemEntrada(dados?.treinouHoje ?? false, dados?.semanaCompleta ?? false),
+    [dados?.treinouHoje, dados?.semanaCompleta],
+  );
+
+  // Banner de boas-vindas: um toast não-bloqueante que desliza do topo e some
+  // sozinho (ou ao toque). Substitui o antigo cartão fixo, que empurrava o
+  // conteúdo e ficava preso na tela — ruim para acessibilidade de idosos.
+  const [bannerMontado, setBannerMontado] = React.useState(false);
+  const bannerTranslateY = React.useRef(new Animated.Value(BANNER_BOAS_VINDAS_DESLOCAMENTO)).current;
+  const bannerOpacidade = React.useRef(new Animated.Value(0)).current;
+  const bannerTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Garante que o banner apareça só na primeira entrada no app (login), não
+  // toda vez que o participante sai e volta para a aba Início. A TelaInicio
+  // fica montada durante toda a sessão (as abas só se escondem, não
+  // desmontam), então esta ref dura até o próximo login/recarregamento do app.
+  const bannerJaExibidoRef = React.useRef(false);
+
+  const esconderBanner = React.useCallback(() => {
+    if (bannerTimeoutRef.current) {
+      clearTimeout(bannerTimeoutRef.current);
+      bannerTimeoutRef.current = null;
+    }
+    Animated.parallel([
+      Animated.timing(bannerTranslateY, {
+        toValue: BANNER_BOAS_VINDAS_DESLOCAMENTO,
+        duration: BANNER_BOAS_VINDAS_ANIMACAO_MS,
+        useNativeDriver: true,
+      }),
+      Animated.timing(bannerOpacidade, {
+        toValue: 0,
+        duration: BANNER_BOAS_VINDAS_ANIMACAO_MS,
+        useNativeDriver: true,
+      }),
+    ]).start(({ finished }) => {
+      if (finished) {
+        setBannerMontado(false);
+      }
+    });
+  }, [bannerOpacidade, bannerTranslateY]);
+
+  const mostrarBanner = React.useCallback(() => {
+    if (bannerTimeoutRef.current) {
+      clearTimeout(bannerTimeoutRef.current);
+    }
+    setBannerMontado(true);
+    bannerTranslateY.setValue(BANNER_BOAS_VINDAS_DESLOCAMENTO);
+    bannerOpacidade.setValue(0);
+    Animated.parallel([
+      Animated.timing(bannerTranslateY, {
+        toValue: 0,
+        duration: BANNER_BOAS_VINDAS_ANIMACAO_MS,
+        useNativeDriver: true,
+      }),
+      Animated.timing(bannerOpacidade, {
+        toValue: 1,
+        duration: BANNER_BOAS_VINDAS_ANIMACAO_MS,
+        useNativeDriver: true,
+      }),
+    ]).start();
+    bannerTimeoutRef.current = setTimeout(esconderBanner, BANNER_BOAS_VINDAS_DURACAO_MS);
+  }, [bannerOpacidade, bannerTranslateY, esconderBanner]);
+
+  // Mostra o banner uma única vez, assim que os dados da tela de entrada
+  // carregam pela primeira vez (abertura do app/login) — não a cada vez que
+  // o participante volta para a aba Início.
+  React.useEffect(() => {
+    if (!loading && dados && !bannerJaExibidoRef.current) {
+      bannerJaExibidoRef.current = true;
+      mostrarBanner();
+    }
+    return () => {
+      if (bannerTimeoutRef.current) {
+        clearTimeout(bannerTimeoutRef.current);
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dados, loading]);
+
+  const perguntaRefazer = dados?.perguntaRefazer ?? null;
+
+  React.useEffect(() => {
+    setPerguntaRefazerVisivel(perguntaRefazer !== null);
+  }, [perguntaRefazer?.sessaoId]);
+
+  const responderRefazer = React.useCallback(
+    async (quizRefazer: boolean) => {
+      if (!perguntaRefazer || respondendoPerguntaRefazer) {
+        return;
+      }
+      setRespondendoPerguntaRefazer(true);
+      try {
+        await responderPerguntaRefazer(perguntaRefazer.sessaoId);
+      } catch {
+        // Falha ao registrar a resposta não deve travar a navegação do participante.
+      } finally {
+        setRespondendoPerguntaRefazer(false);
+        setPerguntaRefazerVisivel(false);
+      }
+      if (quizRefazer) {
+        onIniciarTreino();
+      }
+    },
+    [perguntaRefazer, respondendoPerguntaRefazer, onIniciarTreino],
+  );
 
   if (loading) {
     return (
@@ -217,11 +388,12 @@ export default function TelaInicio({
   const progressoPercentual = progresso ? Math.min(100, Math.max(0, progresso.progressoPercentual)) : 0;
 
   return (
-    <ScrollView
-      style={styles.page}
-      contentContainerStyle={styles.content}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-    >
+    <View style={styles.raiz}>
+      <ScrollView
+        style={styles.page}
+        contentContainerStyle={styles.content}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+      >
       <View style={styles.header}>
         <Text style={styles.saudacao}>Olá, {primeiroNome}</Text>
         <Pressable
@@ -280,14 +452,26 @@ export default function TelaInicio({
 
               const ehHoje = ehMesAtual && dia === hoje.getDate();
               const temTreino = diasComTreinoSet.has(dia);
+              const estaSelecionado = temTreino && dia === diaSelecionado;
 
               return (
                 <View key={dia} style={styles.diaCelula}>
-                  <View
-                    style={[styles.diaBadge, temTreino && styles.diaBadgeComTreino, ehHoje && styles.diaBadgeHoje]}
+                  <Pressable
+                    onPress={temTreino ? () => alternarDiaSelecionado(dia) : undefined}
+                    disabled={!temTreino}
+                    hitSlop={2}
+                    accessibilityRole={temTreino ? 'button' : undefined}
+                    accessibilityLabel={temTreino ? `Dia ${dia}, com treino realizado` : `Dia ${dia}`}
+                    accessibilityState={temTreino ? { selected: estaSelecionado } : undefined}
+                    style={[
+                      styles.diaBadge,
+                      temTreino && styles.diaBadgeComTreino,
+                      ehHoje && styles.diaBadgeHoje,
+                      estaSelecionado && styles.diaBadgeSelecionado,
+                    ]}
                   >
                     <Text style={[styles.diaTexto, ehHoje && styles.diaTextoHoje]}>{dia}</Text>
-                  </View>
+                  </Pressable>
                 </View>
               );
             })}
@@ -295,7 +479,7 @@ export default function TelaInicio({
         )}
       </View>
 
-      {dados.treinoRealizado && (
+      {treinoDoDiaSelecionado && (
         <View style={styles.treinoCard}>
           <View style={styles.treinoCardRow}>
             <View style={styles.treinoIconeBadge}>
@@ -305,15 +489,15 @@ export default function TelaInicio({
               <Text style={styles.treinoTitulo}>Treino realizado</Text>
               <Text style={styles.treinoSubtitulo}>
                 {tituloTreino(
-                  dados.treinoRealizado.nome,
-                  dados.treinoRealizado.nivel,
-                  dados.treinoRealizado.fase,
+                  treinoDoDiaSelecionado.nome,
+                  treinoDoDiaSelecionado.nivel,
+                  treinoDoDiaSelecionado.fase,
                 )}
               </Text>
               <Text style={styles.treinoDetalhe}>
-                {dados.treinoRealizado.quantidadeExercicios}{' '}
-                {dados.treinoRealizado.quantidadeExercicios === 1 ? 'exercício' : 'exercícios'} · Duração:{' '}
-                {dados.treinoRealizado.duracaoMinutos} min
+                {treinoDoDiaSelecionado.quantidadeExercicios}{' '}
+                {treinoDoDiaSelecionado.quantidadeExercicios === 1 ? 'exercício' : 'exercícios'} · Duração:{' '}
+                {treinoDoDiaSelecionado.duracaoMinutos} min
               </Text>
             </View>
           </View>
@@ -381,11 +565,73 @@ export default function TelaInicio({
           </Text>
         </View>
       </View>
-    </ScrollView>
+
+      <Modal
+        visible={perguntaRefazerVisivel && perguntaRefazer !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => responderRefazer(false)}
+      >
+        <View style={styles.perguntaOverlay}>
+          <View style={styles.perguntaCartao}>
+            <Text style={styles.perguntaTitulo}>Bom te ver de novo!</Text>
+            <Text style={styles.perguntaTexto}>{perguntaRefazer?.mensagem}</Text>
+            <View style={styles.perguntaBotoes}>
+              <Pressable
+                style={styles.perguntaBotaoNao}
+                onPress={() => responderRefazer(false)}
+                disabled={respondendoPerguntaRefazer}
+                accessibilityRole="button"
+                accessibilityLabel="Não, agora não"
+              >
+                <Text style={styles.perguntaBotaoNaoTexto}>Agora não</Text>
+              </Pressable>
+              <Pressable
+                style={styles.perguntaBotaoSim}
+                onPress={() => responderRefazer(true)}
+                disabled={respondendoPerguntaRefazer}
+                accessibilityRole="button"
+                accessibilityLabel="Sim, refazer treino"
+              >
+                <Text style={styles.perguntaBotaoSimTexto}>Sim, refazer</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+      </ScrollView>
+
+      {bannerMontado && (
+        <Animated.View
+          style={[
+            styles.bannerWrapper,
+            {
+              opacity: bannerOpacidade,
+              transform: [{ translateY: bannerTranslateY }],
+            },
+          ]}
+          pointerEvents="box-none"
+        >
+          <Pressable
+            style={styles.bannerCartao}
+            onPress={esconderBanner}
+            accessibilityRole="button"
+            accessibilityLabel="Aviso"
+            accessibilityHint="Toque para fechar este aviso"
+            accessibilityLiveRegion="polite"
+          >
+            <Text style={styles.bannerTexto}>{mensagemEntrada}</Text>
+          </Pressable>
+        </Animated.View>
+      )}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  raiz: {
+    flex: 1,
+  },
   page: {
     flex: 1,
     backgroundColor: '#ffffff',
@@ -450,6 +696,32 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#3b5cff',
   },
+  bannerWrapper: {
+    position: 'absolute',
+    top: 64,
+    left: 14,
+    right: 14,
+    zIndex: 50,
+    elevation: 8,
+  },
+  bannerCartao: {
+    borderRadius: 14,
+    backgroundColor: '#eef2ff',
+    borderWidth: 1,
+    borderColor: '#c5d2ff',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    shadowColor: '#1c2333',
+    shadowOpacity: 0.2,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 8 },
+  },
+  bannerTexto: {
+    fontSize: 15,
+    lineHeight: 21,
+    fontWeight: '600',
+    color: '#24307a',
+  },
   calendarioCard: {
     borderRadius: 14,
     borderWidth: 1,
@@ -509,6 +781,10 @@ const styles = StyleSheet.create({
   },
   diaBadgeHoje: {
     backgroundColor: '#3b5cff',
+  },
+  diaBadgeSelecionado: {
+    borderWidth: 2,
+    borderColor: '#3b5cff',
   },
   diaTexto: {
     fontSize: 13,
@@ -615,5 +891,62 @@ const styles = StyleSheet.create({
     marginTop: 6,
     fontSize: 12,
     color: '#7a8298',
+  },
+  perguntaOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(20, 24, 33, 0.45)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+  },
+  perguntaCartao: {
+    width: '100%',
+    maxWidth: 340,
+    borderRadius: 16,
+    backgroundColor: '#ffffff',
+    padding: 20,
+  },
+  perguntaTitulo: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#20283b',
+    marginBottom: 8,
+  },
+  perguntaTexto: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: '#5e677d',
+    marginBottom: 20,
+  },
+  perguntaBotoes: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  perguntaBotaoNao: {
+    flex: 1,
+    height: 44,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#e6eaf4',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  perguntaBotaoNaoTexto: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#20283b',
+  },
+  perguntaBotaoSim: {
+    flex: 1,
+    height: 44,
+    borderRadius: 10,
+    backgroundColor: '#3b5cff',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  perguntaBotaoSimTexto: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#ffffff',
   },
 });

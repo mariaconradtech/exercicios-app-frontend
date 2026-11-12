@@ -1,6 +1,7 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { escolherMensagemRotativa } from '../../utils/mensagens';
 import { cores } from './cores';
 
 type ModalFinalizarTreinoProps = {
@@ -36,16 +37,12 @@ const mensagensConcluido = [
   'Uhuuuul! Você completou mais um treino! Parabéns!',
 ];
 
-function escolherMensagem(mensagens: string[]): string {
-  return mensagens[Math.floor(Math.random() * mensagens.length)];
-}
-
 function mensagemConfirmacao(percentualConcluido: number): string {
   if (percentualConcluido < 50) {
-    return escolherMensagem(mensagensAte49);
+    return escolherMensagemRotativa('treino-finalizar-ate49', mensagensAte49);
   }
 
-  return escolherMensagem(mensagensDe50A95);
+  return escolherMensagemRotativa('treino-finalizar-50a95', mensagensDe50A95);
 }
 
 export default function ModalFinalizarTreino({
@@ -63,12 +60,12 @@ export default function ModalFinalizarTreino({
     }
 
     if (tipo === 'concluido') {
-      setMensagem(escolherMensagem(mensagensConcluido));
+      setMensagem(escolherMensagemRotativa('treino-concluido', mensagensConcluido));
       return;
     }
 
     if (tipo === 'interrompido') {
-      setMensagem(escolherMensagem(mensagensInterrompido));
+      setMensagem(escolherMensagemRotativa('treino-interrompido', mensagensInterrompido));
       return;
     }
 

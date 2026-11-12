@@ -18,6 +18,7 @@ import {
   type GeneroAvatar,
   type ParticipanteLogado,
 } from '../services/treinoService';
+import { registrarNotificacoesPush, removerNotificacoesPush } from '../services/pushNotifications';
 import TelaEscolhaAvatar from '../telas/TelaEscolhaAvatar';
 import TelaFeedback from '../telas/TelaFeedback';
 import TelaEngajamento from '../telas/TelaEngajamento';
@@ -205,6 +206,9 @@ export default function FluxoTelas() {
   };
 
   const handleLogout = () => {
+    if (participante) {
+      void removerNotificacoesPush(participante.participanteId);
+    }
     setParticipante(null);
     setAvatarGenero(null);
     setNomeAvatar('');
@@ -239,6 +243,9 @@ export default function FluxoTelas() {
                 const participanteLogado = await login(cpf, senha);
                 setLoginError(null);
                 setParticipante(participanteLogado);
+
+                // Lembrete padrão, lembrete repetido e lembrete semanal (push fora do app).
+                void registrarNotificacoesPush(participanteLogado.participanteId);
 
                 try {
                   const perfil = await buscarPerfilParticipante(participanteLogado.participanteId);

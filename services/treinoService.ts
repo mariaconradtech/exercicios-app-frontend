@@ -17,6 +17,9 @@ import type { InicioParticipanteDTO } from '../types/inicio';
 //   registrarProgresso  -> PATCH /sessoes/:sessaoId/progresso
 //   finalizarSessao     -> PATCH /sessoes/:sessaoId/finalizar
 //   enviarFeedback      -> POST  /avaliacoes
+//   registrarTokenPush  -> PATCH /participantes/:participanteId/push-token
+//   removerTokenPush    -> PATCH /participantes/:participanteId/push-token
+//   responderPerguntaRefazer -> PATCH /sessoes/:sessaoId/pergunta-refazer
 
 export function resolverApiBaseUrl(): string {
   const envApiUrl = process.env.EXPO_PUBLIC_API_URL;
@@ -225,4 +228,29 @@ export async function buscarInicioParticipante(
   );
   await tratarResposta(response, 'Não foi possível carregar os dados da tela inicial');
   return response.json();
+}
+
+export async function registrarTokenPush(participanteId: number, expoPushToken: string): Promise<void> {
+  const response = await fetchComTimeout(`${API_BASE_URL}/participantes/${participanteId}/push-token`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ expoPushToken }),
+  });
+  await tratarResposta(response, 'Não foi possível registrar as notificações');
+}
+
+export async function removerTokenPush(participanteId: number): Promise<void> {
+  const response = await fetchComTimeout(`${API_BASE_URL}/participantes/${participanteId}/push-token`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ expoPushToken: null }),
+  });
+  await tratarResposta(response, 'Não foi possível remover as notificações');
+}
+
+export async function responderPerguntaRefazer(sessaoId: number): Promise<void> {
+  const response = await fetchComTimeout(`${API_BASE_URL}/sessoes/${sessaoId}/pergunta-refazer`, {
+    method: 'PATCH',
+  });
+  await tratarResposta(response, 'Não foi possível registrar a resposta');
 }
