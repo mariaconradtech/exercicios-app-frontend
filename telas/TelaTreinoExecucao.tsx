@@ -1,7 +1,7 @@
 import React from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { useKeepAwake } from 'expo-keep-awake';
-import { SafeAreaView, StyleSheet, View } from 'react-native';
+import { Pressable, SafeAreaView, StyleSheet, Text, View } from 'react-native';
 
 import AcoesTreino from './treinoExecucao/AcoesTreino';
 import { cores } from './treinoExecucao/cores';
@@ -42,6 +42,7 @@ export default function TelaTreinoExecucao({
     isConfirmModalOpen,
     percentualConcluido,
     descansoInicial,
+    erroIniciar,
     pausar,
     retomar,
     pedirFinalizar,
@@ -58,6 +59,24 @@ export default function TelaTreinoExecucao({
   }, [registro, onFinish, sessaoId]);
 
   const pausado = status === 'PAUSADO';
+
+  // Sem sessão criada no backend (ex.: 409 porque já completou o treino de
+  // hoje) não dá pra prosseguir — mostra o motivo e manda de volta, em vez de
+  // deixar o participante "treinar" uma sessão que nunca seria salva.
+  if (erroIniciar) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <StatusBar style="dark" />
+        <View style={styles.erroContainer}>
+          <Text style={styles.erroTitulo}>Não foi possível iniciar o treino</Text>
+          <Text style={styles.erroMensagem}>{erroIniciar}</Text>
+          <Pressable style={styles.erroBotao} onPress={onBackPress}>
+            <Text style={styles.erroBotaoTexto}>Voltar</Text>
+          </Pressable>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   // Ao terminar, mostra a mensagem positiva antes de entregar o fluxo para a tela de feedback.
   if (status === 'CONCLUIDA' || status === 'INTERROMPIDA') {
@@ -160,5 +179,38 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 20,
     minHeight: 60,
+  },
+  erroContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 32,
+  },
+  erroTitulo: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: cores.texto,
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  erroMensagem: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: cores.textoSecundario,
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  erroBotao: {
+    height: 46,
+    paddingHorizontal: 28,
+    borderRadius: 12,
+    backgroundColor: cores.azul,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  erroBotaoTexto: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#ffffff',
   },
 });

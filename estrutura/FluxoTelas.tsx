@@ -22,7 +22,7 @@ import { registrarNotificacoesPush, removerNotificacoesPush } from '../services/
 import TelaEscolhaAvatar from '../telas/TelaEscolhaAvatar';
 import TelaFeedback from '../telas/TelaFeedback';
 import TelaEngajamento from '../telas/TelaEngajamento';
-import TelaInicio, { type ProximoTreinoResumo } from '../telas/TelaInicio';
+import TelaInicio, { MENSAGEM_TREINO_CONCLUIDO_HOJE, type ProximoTreinoResumo } from '../telas/TelaInicio';
 import TelaInstrucao from '../telas/TelaInstrucao';
 import TelaLogin from '../telas/TelaLogin';
 import TelaPerfil from '../telas/TelaPerfil';
@@ -76,6 +76,10 @@ export default function FluxoTelas() {
   const [treinoLoading, setTreinoLoading] = React.useState(true);
   const [treinoError, setTreinoError] = React.useState<string | null>(null);
   const [sessaoId, setSessaoId] = React.useState<number | null>(null);
+  // Vem da TelaInicio (que já busca /inicio). Usado pra aba "Treino" do menu
+  // inferior também respeitar a regra de 1 treino por dia, sem entrar na tela
+  // de instrução só pra descobrir o bloqueio no final.
+  const [treinouHoje, setTreinouHoje] = React.useState(false);
 
   const materiaisTreino = React.useMemo(() => {
     return (treino?.instrucao ?? '')
@@ -104,6 +108,9 @@ export default function FluxoTelas() {
   }, [treino]);
 
   const handleIniciarTreinoPelaHome = () => {
+    if (treinouHoje) {
+      return;
+    }
     setAbaAtiva('treino');
     setScreenIndex('intro');
   };
@@ -119,9 +126,20 @@ export default function FluxoTelas() {
     }
   };
 
-  const handleTreinoFinish = (_registro: RegistroExecucao, sessaoIdFinalizada: number | null) => {
+  const handleTreinoFinish = (registro: RegistroExecucao, sessaoIdFinalizada: number | null) => {
     setSessaoId(sessaoIdFinalizada);
     setScreenIndex('feedback');
+
+    // Se a sessão conta (≥ 50%), marca imediatamente pra aba "Treino" e o
+    // card da Início já refletirem a regra sem esperar o próximo GET /inicio.
+    if (treino) {
+      const totalSeries = treino.itens.reduce((soma, item) => soma + item.series, 0);
+      const concluidas = Object.values(registro.itens).filter((s) => s === 'concluida').length;
+      const percentual = totalSeries === 0 ? 0 : (concluidas / totalSeries) * 100;
+      if (percentual >= 50) {
+        setTreinouHoje(true);
+      }
+    }
   };
 
   const handleFeedbackSubmit = async (rating: number) => {
@@ -153,6 +171,14 @@ export default function FluxoTelas() {
           ? 'Carregando treino...'
           : treinoError ?? 'Nenhum treino disponível no momento.',
       );
+    }
+
+    // Regra: só 1 treino por dia. Se o participante chegou direto pela aba
+    // "Treino" (sem passar pelo card da Início, que já bloqueia o botão),
+    // barra aqui também — antes de entrar na tela de instrução — em vez de só
+    // descobrir isso ao tentar abrir a sessão no backend.
+    if (treinouHoje && screenIndex === 'intro') {
+      return renderPlaceholder('Treino de hoje concluído', MENSAGEM_TREINO_CONCLUIDO_HOJE);
     }
 
     return (
@@ -215,6 +241,7 @@ export default function FluxoTelas() {
     setTreino(null);
     setTreinoError(null);
     setSessaoId(null);
+    setTreinouHoje(false);
     setAbaAtiva('treino');
     setScreenIndex('intro');
     setLoginError(null);
@@ -399,6 +426,7 @@ export default function FluxoTelas() {
                   onIniciarTreino={handleIniciarTreinoPelaHome}
                   onAbrirPerfil={() => setAbaAtiva('perfil')}
                   visivel={abaAtiva === 'inicio'}
+                  onTreinouHojeChange={setTreinouHoje}
                 />
               </View>
             )}
