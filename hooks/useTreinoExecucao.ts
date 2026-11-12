@@ -24,6 +24,13 @@ interface UseTreinoExecucaoResult {
   isConfirmModalOpen: boolean;
   percentualConcluido: number;
   descansoInicial: boolean;
+  /**
+   * Preenchido quando POST /sessoes falha ao abrir a tela (ex.: 409 porque o
+   * participante já completou o treino de hoje). Enquanto estiver preenchido,
+   * a tela de execução não deve prosseguir — não dá pra registrar progresso
+   * nem finalizar uma sessão que nunca foi criada no backend.
+   */
+  erroIniciar: string | null;
   pausar: () => void;
   retomar: () => void;
   pedirFinalizar: () => void;
@@ -58,6 +65,7 @@ export function useTreinoExecucao(
   const [registro, setRegistro] = useState<RegistroExecucao>({ itens: {}, tempoRealizadoSegundos: 0 });
   const [sessaoId, setSessaoId] = useState<number | null>(null);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [erroIniciar, setErroIniciar] = useState<string | null>(null);
 
   const exercicioAtual = treino.itens[exercicioIndex];
   const proximoExercicio = treino.itens[exercicioIndex + 1] ?? null;
@@ -166,9 +174,14 @@ export function useTreinoExecucao(
       .then(({ sessaoId }) => {
         sessaoIdRef.current = sessaoId;
         setSessaoId(sessaoId);
+        countdown.start();
       })
-      .catch(() => {});
-    countdown.start();
+      .catch((error) => {
+        // Sem sessão criada no backend não dá pra registrar progresso nem
+        // finalizar depois — melhor parar aqui e avisar o participante do que
+        // deixar ele "treinar" uma sessão que nunca vai ser salva.
+        setErroIniciar(error instanceof Error ? error.message : 'Não foi possível iniciar o treino.');
+      });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -245,6 +258,7 @@ export function useTreinoExecucao(
     isConfirmModalOpen,
     percentualConcluido: calcularPercentual(registro.itens, treino),
     descansoInicial,
+    erroIniciar,
     pausar,
     retomar,
     pedirFinalizar,

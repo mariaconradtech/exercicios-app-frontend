@@ -1,4 +1,5 @@
 import React from 'react';
+import { Feather } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import {
   SafeAreaView,
@@ -22,7 +23,7 @@ import { registrarNotificacoesPush, removerNotificacoesPush } from '../services/
 import TelaEscolhaAvatar from '../telas/TelaEscolhaAvatar';
 import TelaFeedback from '../telas/TelaFeedback';
 import TelaEngajamento from '../telas/TelaEngajamento';
-import TelaInicio, { type ProximoTreinoResumo } from '../telas/TelaInicio';
+import TelaInicio, { MENSAGEM_TREINO_CONCLUIDO_HOJE, type ProximoTreinoResumo } from '../telas/TelaInicio';
 import TelaInstrucao from '../telas/TelaInstrucao';
 import TelaLogin from '../telas/TelaLogin';
 import TelaPerfil from '../telas/TelaPerfil';
@@ -76,6 +77,10 @@ export default function FluxoTelas() {
   const [treinoLoading, setTreinoLoading] = React.useState(true);
   const [treinoError, setTreinoError] = React.useState<string | null>(null);
   const [sessaoId, setSessaoId] = React.useState<number | null>(null);
+  // Vem da TelaInicio (que já busca /inicio). Usado pra aba "Treino" do menu
+  // inferior também respeitar a regra de 1 treino por dia, sem entrar na tela
+  // de instrução só pra descobrir o bloqueio no final.
+  const [treinouHoje, setTreinouHoje] = React.useState(false);
 
   const materiaisTreino = React.useMemo(() => {
     return (treino?.instrucao ?? '')
@@ -104,6 +109,9 @@ export default function FluxoTelas() {
   }, [treino]);
 
   const handleIniciarTreinoPelaHome = () => {
+    if (treinouHoje) {
+      return;
+    }
     setAbaAtiva('treino');
     setScreenIndex('intro');
   };
@@ -119,9 +127,20 @@ export default function FluxoTelas() {
     }
   };
 
-  const handleTreinoFinish = (_registro: RegistroExecucao, sessaoIdFinalizada: number | null) => {
+  const handleTreinoFinish = (registro: RegistroExecucao, sessaoIdFinalizada: number | null) => {
     setSessaoId(sessaoIdFinalizada);
     setScreenIndex('feedback');
+
+    // Se a sessão conta (≥ 50%), marca imediatamente pra aba "Treino" e o
+    // card da Início já refletirem a regra sem esperar o próximo GET /inicio.
+    if (treino) {
+      const totalSeries = treino.itens.reduce((soma, item) => soma + item.series, 0);
+      const concluidas = Object.values(registro.itens).filter((s) => s === 'concluida').length;
+      const percentual = totalSeries === 0 ? 0 : (concluidas / totalSeries) * 100;
+      if (percentual >= 50) {
+        setTreinouHoje(true);
+      }
+    }
   };
 
   const handleFeedbackSubmit = async (rating: number) => {
@@ -152,6 +171,28 @@ export default function FluxoTelas() {
         treinoLoading
           ? 'Carregando treino...'
           : treinoError ?? 'Nenhum treino disponível no momento.',
+      );
+    }
+
+    // Regra: só 1 treino por dia. Se o participante chegou direto pela aba
+    // "Treino" (sem passar pelo card da Início, que já bloqueia o botão),
+    // barra aqui também — antes de entrar na tela de instrução — em vez de só
+    // descobrir isso ao tentar abrir a sessão no backend.
+    if (treinouHoje && screenIndex === 'intro') {
+      return (
+        <View style={styles.treinoConcluidoTela}>
+          <View style={styles.treinoConcluidoCartao}>
+            <View style={styles.treinoConcluidoIconeWrap}>
+              <Feather name="check" size={36} color="#ffffff" />
+            </View>
+            <Text style={styles.treinoConcluidoTitulo}>Treino de hoje concluído</Text>
+            <Text style={styles.treinoConcluidoMensagem}>{MENSAGEM_TREINO_CONCLUIDO_HOJE}</Text>
+            <View style={styles.treinoConcluidoBadge}>
+              <Feather name="sun" size={14} color="#1f7a46" />
+              <Text style={styles.treinoConcluidoBadgeTexto}>Volte amanhã</Text>
+            </View>
+          </View>
+        </View>
       );
     }
 
@@ -215,6 +256,7 @@ export default function FluxoTelas() {
     setTreino(null);
     setTreinoError(null);
     setSessaoId(null);
+    setTreinouHoje(false);
     setAbaAtiva('treino');
     setScreenIndex('intro');
     setLoginError(null);
@@ -399,6 +441,7 @@ export default function FluxoTelas() {
                   onIniciarTreino={handleIniciarTreinoPelaHome}
                   onAbrirPerfil={() => setAbaAtiva('perfil')}
                   visivel={abaAtiva === 'inicio'}
+                  onTreinouHojeChange={setTreinouHoje}
                 />
               </View>
             )}
@@ -533,6 +576,68 @@ const styles = StyleSheet.create({
     lineHeight: 23,
     color: '#5a647b',
     textAlign: 'center',
+  },
+  treinoConcluidoTela: {
+    flex: 1,
+    backgroundColor: '#f3faf6',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 24,
+  },
+  treinoConcluidoCartao: {
+    borderRadius: 20,
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#c9ecd7',
+    paddingHorizontal: 22,
+    paddingTop: 28,
+    paddingBottom: 26,
+    alignItems: 'center',
+    shadowColor: '#1f7a46',
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 2,
+  },
+  treinoConcluidoIconeWrap: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: '#11a84f',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 18,
+  },
+  treinoConcluidoTitulo: {
+    fontSize: 22,
+    lineHeight: 28,
+    fontWeight: '800',
+    color: '#1d2433',
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  treinoConcluidoMensagem: {
+    fontSize: 15,
+    lineHeight: 22,
+    color: '#4a5568',
+    textAlign: 'center',
+    marginBottom: 18,
+  },
+  treinoConcluidoBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#eafaf0',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: '#bdeccf',
+  },
+  treinoConcluidoBadgeTexto: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#1f7a46',
   },
   tabBar: {
     borderTopWidth: 1,

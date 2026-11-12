@@ -48,6 +48,15 @@ const MENSAGENS_ENTRADA_SEMANA_COMPLETA = [
   'Parabéns pelos treinos dessa semana! Acompanhe sua evolução na aba de progresso e ranking! Te vejo no nosso próximo treino, até lá!',
 ];
 
+/**
+ * Regra: só 1 treino "que conta" por dia (ver filtroSessoesQueContam no
+ * backend). Exibida no lugar do botão "Iniciar Treino" quando `treinouHoje`
+ * for true, para não deixar o idoso tentar começar outro treino no mesmo dia
+ * sem entender o motivo do bloqueio.
+ */
+export const MENSAGEM_TREINO_CONCLUIDO_HOJE =
+  'Você já completou o treino de hoje! Parabéns pela sua dedicação e cuidado com a saúde. Descanse bem, te espero amanhã para o próximo treino!';
+
 // Tempo que o aviso de boas-vindas fica visível antes de desaparecer sozinho.
 // Não é um modal: o idoso nunca fica travado nele, só lê e segue usando o app.
 const BANNER_BOAS_VINDAS_DURACAO_MS = 6000;
@@ -138,6 +147,12 @@ interface TelaInicioProps {
   onIniciarTreino: () => void;
   onAbrirPerfil: () => void;
   visivel?: boolean;
+  /**
+   * Avisa o componente pai sempre que soubermos se o participante já treinou
+   * hoje. Usado pra aba "Treino" do menu inferior também respeitar a regra de
+   * 1 treino por dia, sem precisar duplicar a chamada a /inicio lá.
+   */
+  onTreinouHojeChange?: (treinouHoje: boolean) => void;
 }
 
 export default function TelaInicio({
@@ -149,6 +164,7 @@ export default function TelaInicio({
   onIniciarTreino,
   onAbrirPerfil,
   visivel = true,
+  onTreinouHojeChange,
 }: TelaInicioProps) {
   const hoje = React.useMemo(() => new Date(), []);
   const [mesExibido, setMesExibido] = React.useState({ mes: hoje.getMonth() + 1, ano: hoje.getFullYear() });
@@ -247,6 +263,14 @@ export default function TelaInicio({
   const ehMesAtual = mesExibido.mes === hoje.getMonth() + 1 && mesExibido.ano === hoje.getFullYear();
   const treinoDoDiaSelecionado =
     diaSelecionado !== null ? dados?.treinosPorDia[diaSelecionado] ?? null : null;
+  const jaTreinouHoje = dados?.treinouHoje ?? false;
+
+  React.useEffect(() => {
+    if (dados) {
+      onTreinouHojeChange?.(dados.treinouHoje);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dados?.treinouHoje]);
 
   const primeiroNome = nome.trim().split(' ')[0] || 'Participante';
 
@@ -534,7 +558,11 @@ export default function TelaInicio({
           </View>
         </View>
 
-        {!proximoTreinoCarregando && proximoTreino && (
+        {!proximoTreinoCarregando && proximoTreino && jaTreinouHoje && (
+          <Text style={styles.treinoConcluidoMensagem}>{MENSAGEM_TREINO_CONCLUIDO_HOJE}</Text>
+        )}
+
+        {!proximoTreinoCarregando && proximoTreino && !jaTreinouHoje && (
           <Pressable
             style={styles.iniciarBotao}
             onPress={onIniciarTreino}
@@ -843,6 +871,19 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 15,
     fontWeight: '700',
+  },
+  treinoConcluidoMensagem: {
+    borderRadius: 14,
+    backgroundColor: '#eafaf0',
+    borderWidth: 1,
+    borderColor: '#bdeccf',
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    color: '#1f7a46',
+    fontSize: 13,
+    lineHeight: 19,
+    fontWeight: '600',
+    textAlign: 'center',
   },
   progressoCard: {
     flexDirection: 'row',

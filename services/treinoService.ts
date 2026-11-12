@@ -152,8 +152,17 @@ export async function iniciarSessao(
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ treinoId, participanteId }),
   });
-  await tratarResposta(response, 'Não foi possível iniciar a sessão');
-  return response.json();
+
+  const payload = await response.json().catch(() => ({}));
+
+  // Lê a mensagem do backend (ex.: "Você já completou o treino de hoje...",
+  // devolvida com 409 quando o participante tenta um 2º treino no mesmo dia)
+  // em vez do erro genérico, pra mostrar pro participante o motivo real.
+  if (!response.ok) {
+    throw new Error(payload.error || 'Não foi possível iniciar a sessão');
+  }
+
+  return payload;
 }
 
 export async function registrarProgresso(
